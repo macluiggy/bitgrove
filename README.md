@@ -46,13 +46,33 @@ node dist/bitgrove.mjs init
 
 ## Release
 
-Bump the version and push the tag; GitHub Actions checks, builds and publishes
-`bitgrove.mjs` and `install.sh` to a GitHub Release.
+Pushing to a branch only runs CI. Publishing happens when a `v*` tag is pushed:
+GitHub Actions checks, builds and publishes `bitgrove.mjs` and `install.sh` to
+a GitHub Release, and `curl | sh` installs it from then on.
+
+From an up-to-date, clean `main`:
 
 ```bash
-npm version minor
-git push --follow-tags
+bun run release:patch   # 0.2.0 -> 0.2.1
+bun run release:minor   # 0.2.0 -> 0.3.0
+bun run release:major   # 0.2.0 -> 1.0.0
 ```
+
+Each one bumps `package.json`, commits `chore(release): vX.Y.Z`, tags it and
+pushes. The script refuses to run outside `main`, with uncommitted changes, or
+when `main` is not in sync with `origin`.
+
+Which one ([Semantic Versioning](https://semver.org)):
+
+| Bump      | When                                                                 | Bitgrove examples                                                                                                  |
+| --------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **patch** | Bug fixes only; nothing new for the player, nothing changes for them | A test runner that was not detected, a drawing glitch in a theme, a typo                                           |
+| **minor** | New things that keep working with what players already have          | A new theme, `bitgrove view`, a new agent adapter, a new command                                                   |
+| **major** | A change that breaks something players or integrations rely on       | A new event format old saves cannot read, renamed or removed commands, different hook setup that needs a reinstall |
+
+While the version is `0.x`, the project is still taking shape: breaking
+changes go in a **minor** (`0.2.0 -> 0.3.0`) and `1.0.0` is the deliberate
+"this is stable" release.
 
 ## Use
 

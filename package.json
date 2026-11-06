@@ -20,7 +20,10 @@
     "build": "vite build --config web/vite.config.ts --logLevel warn && bun build src/cli/main.ts --target=node --format=esm --outfile=dist/bitgrove.mjs",
     "e2e": "bun run build && bun test test/e2e",
     "check": "bun run lint && bun run typecheck && bun run build && bun test",
-    "dev:web": "vite --config web/vite.config.ts"
+    "dev:web": "vite --config web/vite.config.ts",
+    "release:patch": "sh scripts/release.sh patch",
+    "release:minor": "sh scripts/release.sh minor",
+    "release:major": "sh scripts/release.sh major"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.6",

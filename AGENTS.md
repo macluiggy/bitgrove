@@ -79,7 +79,7 @@ node dist/bitgrove.mjs init   # install from source into your real Claude Code
 
 Try changes without touching your real setup: `HOME=$(mktemp -d) node dist/bitgrove.mjs init`. To test commit sync, keep your real `HOME` (git needs your `user.email` from `~/.gitconfig`) and point only the save elsewhere: `BITGROVE_HOME=$(mktemp -d) …`.
 
-Release: `npm version patch` (or `minor`), then `git push --follow-tags`. Pushing to `main` never publishes; only a `v*` tag does.
+Release from a clean, synced `main`: `bun run release:patch|minor|major` (see the README for which one). Pushing to a branch only runs CI; only a `v*` tag publishes.
 
 ## What NOT to do
 
