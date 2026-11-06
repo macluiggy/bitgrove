@@ -54,3 +54,7 @@ code, prompts, paths or command output. Nothing leaves your machine.
 ## Design
 
 Why it works this way: [docs/design.md](docs/design.md).
+
+## License
+
+[MIT](LICENSE)
