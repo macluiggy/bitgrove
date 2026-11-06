@@ -11,7 +11,8 @@
     "jsxImportSource": "preact",
     "noUncheckedIndexedAccess": true,
     "verbatimModuleSyntax": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "resolveJsonModule": true
   },
   "include": ["src", "test", "web"]
 }

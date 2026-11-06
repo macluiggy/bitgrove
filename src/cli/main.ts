@@ -10,6 +10,7 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 import webPageBundle from '../../dist/web/index.html' with { type: 'text' };
+import packageJson from '../../package.json' with { type: 'json' };
 import { AGENTS, getAgent } from '../agents';
 import { getGrove } from '../application';
 import { DEFAULT_RULES } from '../domain';
@@ -22,7 +23,13 @@ import {
   ShimOutcome,
 } from './command-shim';
 import { composeDeps } from './compose';
+import {
+  downloadReleaseBundle,
+  latestReleaseTag,
+  runBundleInit,
+} from './github-releases';
 import { hookCommand, LAUNCHER_SCRIPT } from './launcher';
+import { runUpdate } from './update';
 import { renderViewPage } from './view-page';
 
 type Env = Record<string, string | undefined>;
@@ -36,14 +43,30 @@ const STAMP_SEPARATOR = '-';
 const BUILD_HINT =
   'Run "bun run build" first, then "node dist/bitgrove.mjs init".';
 
-const USAGE = `Usage: bitgrove <command>
+const VERSION = packageJson.version;
 
-Commands:
-  init       Install Bitgrove hooks for Claude Code.
-  status     Show your grove (default).
-  view       Open your grove in the browser (--no-open: only write the page).
-  uninstall  Remove Bitgrove hooks and its launcher.
-  help       Show this help.
+const USAGE = `Bitgrove ${VERSION} — a grove that grows from what you tend.
+
+Usage: bitgrove [command]
+
+See your grove
+  status             Show your grove in the terminal (default).
+  view               Open your grove in the browser, with themes.
+                     --no-open  only write the page, print its path.
+
+Keep Bitgrove current
+  update             Install the latest release; your grove is kept.
+  upgrade            Same as update.
+                     --force    reinstall even if already up to date.
+  version            Show the installed version (also --version, -v).
+
+Setup
+  init               Install Bitgrove's Claude Code hooks.
+  uninstall          Remove the hooks and the bitgrove command; keeps your grove.
+
+  help               Show this help (also --help, -h).
+
+Your grove is saved in ~/.bitgrove. More: https://github.com/macluiggy/bitgrove
 `;
 
 function errorMessage(error: unknown): string {
@@ -258,7 +281,25 @@ function hookCommandRun(agentId: string | undefined, env: Env): number {
   }
 }
 
-export function run(args: readonly string[], env: Env): number {
+const FORCE_FLAG = '--force';
+
+function updateCommand(args: readonly string[], env: Env): Promise<number> {
+  return runUpdate(
+    {
+      currentVersion: VERSION,
+      latestTag: latestReleaseTag,
+      downloadBundle: downloadReleaseBundle,
+      runInit: (bundlePath) => runBundleInit(bundlePath, env),
+      write: (line) => process.stdout.write(`${line}\n`),
+    },
+    { force: args.includes(FORCE_FLAG) },
+  );
+}
+
+export function run(
+  args: readonly string[],
+  env: Env,
+): number | Promise<number> {
   switch (args[0]) {
     case undefined:
     case 'status':
@@ -269,16 +310,33 @@ export function run(args: readonly string[], env: Env): number {
       return viewCommand(args.slice(1), env);
     case 'uninstall':
       return uninstallCommand(env);
+    case 'update':
+    case 'upgrade':
+      return updateCommand(args.slice(1), env);
+    case 'version':
+    case '--version':
+    case '-v':
+      process.stdout.write(`bitgrove ${VERSION}\n`);
+      return 0;
     case 'hook':
       return hookCommandRun(args[1], env);
     case 'help':
     case '--help':
+    case '-h':
       process.stdout.write(USAGE);
       return 0;
     default:
-      process.stderr.write(USAGE);
+      process.stderr.write(`Unknown command: ${args[0]}\n\n${USAGE}`);
       return 1;
   }
 }
 
-process.exitCode = run(process.argv.slice(2), process.env);
+Promise.resolve(run(process.argv.slice(2), process.env)).then(
+  (code) => {
+    process.exitCode = code;
+  },
+  (error: unknown) => {
+    process.stderr.write(`${errorMessage(error)}\n`);
+    process.exitCode = 1;
+  },
+);

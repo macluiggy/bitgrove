@@ -451,3 +451,45 @@ describe('bitgrove view', () => {
     expect(runNode(home, ['help']).stdout).toContain('view');
   });
 });
+
+describe('bitgrove version and help', () => {
+  const packageVersion = (
+    JSON.parse(readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf8')) as {
+      version: string;
+    }
+  ).version;
+
+  test('version and --version print the installed version', () => {
+    for (const flag of ['version', '--version', '-v']) {
+      const result = runNode(home, [flag]);
+      expect(result.status).toBe(0);
+      expect(result.stdout.trim()).toBe(`bitgrove ${packageVersion}`);
+    }
+  });
+
+  test('help, --help and -h list every command', () => {
+    for (const flag of ['help', '--help', '-h']) {
+      const result = runNode(home, [flag]);
+      expect(result.status).toBe(0);
+      for (const command of [
+        'status',
+        'view',
+        'update',
+        'upgrade',
+        'version',
+        'init',
+        'uninstall',
+        'help',
+      ]) {
+        expect(result.stdout).toContain(command);
+      }
+    }
+  });
+
+  test('an unknown command shows the help and fails', () => {
+    const result = runNode(home, ['grow-faster']);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('Unknown command: grow-faster');
+    expect(result.stderr).toContain('update');
+  });
+});

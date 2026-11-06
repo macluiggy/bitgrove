@@ -30,7 +30,8 @@ copies Bitgrove to `~/.bitgrove/bin/`, adds a `bitgrove` command to
 (SessionStart, PostToolUse on Bash, Stop). Restart Claude Code afterwards. If
 `~/.local/bin` is not on your PATH, `init` tells you how to add it.
 
-Run the same command again to update; your grove is kept. To pin a version:
+To update later, run `bitgrove update` (or the same `curl` command again);
+your grove is kept. To pin a version:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/macluiggy/bitgrove/main/install.sh | BITGROVE_VERSION=0.1.0 sh
@@ -79,8 +80,10 @@ changes go in a **minor** (`0.2.0 -> 0.3.0`) and `1.0.0` is the deliberate
 Just work. Then, anytime:
 
 ```bash
-bitgrove        # your grove in the terminal
-bitgrove view   # your grove in the browser, with themes
+bitgrove          # your grove in the terminal
+bitgrove view     # your grove in the browser, with themes
+bitgrove update   # install the latest release (alias: upgrade); your grove is kept
+bitgrove help     # every command
 ```
 
 `bitgrove view` writes a self-contained page to `~/.bitgrove/view.html` and
