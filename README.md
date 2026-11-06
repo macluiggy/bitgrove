@@ -59,8 +59,12 @@ git push --follow-tags
 Just work. Then, anytime:
 
 ```bash
-bitgrove
+bitgrove        # your grove in the terminal
+bitgrove view   # your grove in the browser, with themes
 ```
+
+`bitgrove view` writes a self-contained page to `~/.bitgrove/view.html` and
+opens it. It works offline; nothing is uploaded.
 
 ## Uninstall
 

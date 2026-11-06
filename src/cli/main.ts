@@ -1,3 +1,4 @@
+import { spawn } from 'node:child_process';
 import {
   chmodSync,
   copyFileSync,
@@ -8,6 +9,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
+import webPageBundle from '../../dist/web/index.html' with { type: 'text' };
 import { AGENTS, getAgent } from '../agents';
 import { getGrove } from '../application';
 import { DEFAULT_RULES } from '../domain';
@@ -21,6 +23,7 @@ import {
 } from './command-shim';
 import { composeDeps } from './compose';
 import { hookCommand, LAUNCHER_SCRIPT } from './launcher';
+import { renderViewPage } from './view-page';
 
 type Env = Record<string, string | undefined>;
 
@@ -38,6 +41,7 @@ const USAGE = `Usage: bitgrove <command>
 Commands:
   init       Install Bitgrove hooks for Claude Code.
   status     Show your grove (default).
+  view       Open your grove in the browser (--no-open: only write the page).
   uninstall  Remove Bitgrove hooks and its launcher.
   help       Show this help.
 `;
@@ -79,6 +83,64 @@ function commandLines(shim: ShimInstall, launcherPath: string): string[] {
     `To type just "bitgrove", ${shim.shimPath} must be on your PATH.`,
     PATH_HINT,
   ];
+}
+
+// `with { type: 'text' }` makes Bun inline the built page as a string; Bun's
+// types still describe `.html` imports as HTML bundles, hence the cast.
+const webPage = webPageBundle as unknown as string;
+
+const VIEW_FILE = 'view.html';
+const NO_OPEN_FLAG = '--no-open';
+
+const BROWSER_OPENERS: Partial<Record<NodeJS.Platform, string>> = {
+  darwin: 'open',
+  linux: 'xdg-open',
+  freebsd: 'xdg-open',
+  openbsd: 'xdg-open',
+};
+
+function openInBrowser(file: string): boolean {
+  const opener = BROWSER_OPENERS[process.platform];
+
+  if (opener === undefined) {
+    return false;
+  }
+
+  try {
+    const child = spawn(opener, [file], { detached: true, stdio: 'ignore' });
+    child.on('error', () => {});
+    child.unref();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function viewCommand(args: readonly string[], env: Env): number {
+  try {
+    const { deps, paths } = composeDeps(env);
+    const html = renderViewPage(webPage, {
+      events: deps.events.readAll(),
+      rules: deps.rules.load(),
+      generatedAt: deps.clock.now().instant,
+    });
+
+    mkdirSync(paths.home, { recursive: true });
+    const pagePath = join(paths.home, VIEW_FILE);
+    writeFileSync(pagePath, html);
+
+    const lines = [`🌳 Your grove: ${pagePath}`];
+
+    if (!args.includes(NO_OPEN_FLAG) && openInBrowser(pagePath)) {
+      lines.push('Opening it in your browser…');
+    }
+
+    process.stdout.write(`${lines.join('\n')}\n`);
+    return 0;
+  } catch (error) {
+    process.stderr.write(`${errorMessage(error)}\n`);
+    return 1;
+  }
 }
 
 function statusCommand(env: Env): number {
@@ -203,6 +265,8 @@ export function run(args: readonly string[], env: Env): number {
       return statusCommand(env);
     case 'init':
       return initCommand(env);
+    case 'view':
+      return viewCommand(args.slice(1), env);
     case 'uninstall':
       return uninstallCommand(env);
     case 'hook':

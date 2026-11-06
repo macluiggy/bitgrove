@@ -429,3 +429,25 @@ describe('bitgrove commits from git', () => {
     ).toHaveLength(1);
   });
 });
+
+describe('bitgrove view', () => {
+  test('writes a self-contained page with the grove data and does not open it with --no-open', () => {
+    expect(runNode(home, ['init']).status).toBe(0);
+    runLauncher(home, ['hook', 'claude-code'], TESTS_PASSED_PAYLOAD);
+
+    const result = runNode(home, ['view', '--no-open']);
+
+    expect(result.status).toBe(0);
+    const page = path.join(home, '.bitgrove', 'view.html');
+    expect(result.stdout).toContain(page);
+
+    const html = readFileSync(page, 'utf8');
+    expect(html).toContain('"project":"my-api"');
+    expect(html).not.toContain('id="bitgrove-data">null</script>');
+    expect(html).not.toMatch(/<script[^>]+src=/);
+  });
+
+  test('help lists the view command', () => {
+    expect(runNode(home, ['help']).stdout).toContain('view');
+  });
+});

@@ -17,28 +17,32 @@ This file is the **compass**: a short map of what already exists and the mandato
 - ⚠️ **Never damage the user's files** — `init`/`uninstall` back up `~/.claude/settings.json` before writing, refuse malformed JSON, touch only Bitgrove's own handlers (matched by the exact launcher signature) and never overwrite a foreign `~/.local/bin/bitgrove`. Uninstall keeps the save in `~/.bitgrove/`.
 - ⚠️ **Privacy** — store only event type, time, project folder name and agent name. Never code, prompts, paths, diffs or command output; from git read only commit timestamps of the user's email. Nothing leaves the machine.
 - ⚠️ **Tests before behavior** — write the failing test first (RED), then the code (GREEN). Unit tests sit next to the file they test (`*.test.ts`); flows that spawn the built bundle go in `test/e2e/`.
+- ⚠️ **Themes only paint** — the web page computes the grove once (`toGroveView`, from the same domain as the CLI) and every theme receives that `GroveView`. A theme never computes growth. A theme is a Strategy (`Theme` with its own `Scene`, so a 3D theme can own the whole scene); 2D themes are built from an Abstract Factory (`Grove2dKit`: `Backdrop`, `Tree`, `EmptyState`) over a shared layout. New theme = a folder in `web/src/themes/` + one entry in `THEMES`.
+- ⚠️ **The page never knows where data comes from** — it loads through the `GroveSource` port (`EmbeddedGroveSource` today; a cloud source later). Preact and Vite are dev dependencies compiled into one HTML file that the CLI bundle embeds, so installs stay dependency-free.
 - ⚠️ **A new agent is a new folder** — add `src/agents/<agent>/` implementing `AgentAdapter` and register it in `src/agents/index.ts`. Never touch `domain/` to support an agent.
 
 ## Capability map
 
-| If you need…                                               | Already exists                                                                                       | Entry point                                      |
-| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| Event types and the event shape                            | `EventType`, `GroveEvent`                                                                            | `src/domain/event.ts`                            |
-| Game day (04:00 boundary), previous date                   | `gameDayOf`, `previousDate`                                                                          | `src/domain/calendar.ts`                         |
-| Work hours / after-hours rule                              | `DEFAULT_RULES`, `isAfterHours`                                                                      | `src/domain/rules.ts`                            |
-| Tree stage from tended days                                | `Stage`, `stageFor`, `nextThreshold`                                                                 | `src/domain/stage.ts`                            |
-| Build the grove from events                                | `buildGrove`, `growthOn`, `tendedDaysByProject`                                                      | `src/domain/grove.ts`                            |
-| Once-per-day notices (overnight, bedtime)                  | `shouldShowOvernight`, `shouldShowBedtime`, `lastActiveDayBefore`                                    | `src/domain/notices.ts`                          |
-| Ports (events, rules, clock, commits)                      | `EventStore`, `RulesStore`, `Clock`, `CommitLog`, `Deps`                                             | `src/application/ports.ts`                       |
-| Use cases                                                  | `recordAccomplishment`, `syncCommits`, `startSession`, `checkBedtime`, `getGrove`                    | `src/application/`                               |
-| Own commits from git history (any branch, terminal or IDE) | `GitCommitLog`                                                                                       | `src/infrastructure/git-commit-log.ts`           |
-| Save files and their location                              | `resolvePaths` (`BITGROVE_HOME` or `~/.bitgrove`), JSONL event store, JSON rules store, system clock | `src/infrastructure/`                            |
-| Text output of the grove and notices                       | `renderGrove`, `renderOvernight`, `renderBedtime`                                                    | `src/presentation/text-renderer.ts`              |
-| Claude Code hooks: detect tests, sync commits, install     | `detectAccomplishment`, `handleClaudeHook`, `installHooks`/`uninstallHooks`, `claudeCodeAgent`       | `src/agents/claude-code/`                        |
-| Agent registry                                             | `AGENTS`, `getAgent`                                                                                 | `src/agents/index.ts`                            |
-| CLI commands and composition root                          | `run` (`init`, `status`, `uninstall`, `hook`, `help`), `composeDeps`                                 | `src/cli/main.ts`, `src/cli/compose.ts`          |
-| Launcher and `bitgrove` command on PATH                    | `LAUNCHER_SCRIPT`, `hookCommand`, `installCommandShim`/`removeCommandShim`                           | `src/cli/launcher.ts`, `src/cli/command-shim.ts` |
-| One-command install and releases                           | `install.sh` (curl \| sh from GitHub Releases), release workflow on tag `v*`                         | `install.sh`, `.github/workflows/release.yml`    |
+| If you need…                                               | Already exists                                                                                                     | Entry point                                      |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ |
+| Event types and the event shape                            | `EventType`, `GroveEvent`                                                                                          | `src/domain/event.ts`                            |
+| Game day (04:00 boundary), previous date                   | `gameDayOf`, `previousDate`                                                                                        | `src/domain/calendar.ts`                         |
+| Work hours / after-hours rule                              | `DEFAULT_RULES`, `isAfterHours`                                                                                    | `src/domain/rules.ts`                            |
+| Tree stage from tended days                                | `Stage`, `stageFor`, `nextThreshold`                                                                               | `src/domain/stage.ts`                            |
+| Build the grove from events                                | `buildGrove`, `growthOn`, `tendedDaysByProject`                                                                    | `src/domain/grove.ts`                            |
+| Once-per-day notices (overnight, bedtime)                  | `shouldShowOvernight`, `shouldShowBedtime`, `lastActiveDayBefore`                                                  | `src/domain/notices.ts`                          |
+| Ports (events, rules, clock, commits)                      | `EventStore`, `RulesStore`, `Clock`, `CommitLog`, `Deps`                                                           | `src/application/ports.ts`                       |
+| Use cases                                                  | `recordAccomplishment`, `syncCommits`, `startSession`, `checkBedtime`, `getGrove`                                  | `src/application/`                               |
+| Own commits from git history (any branch, terminal or IDE) | `GitCommitLog`                                                                                                     | `src/infrastructure/git-commit-log.ts`           |
+| Save files and their location                              | `resolvePaths` (`BITGROVE_HOME` or `~/.bitgrove`), JSONL event store, JSON rules store, system clock               | `src/infrastructure/`                            |
+| Text output of the grove and notices                       | `renderGrove`, `renderOvernight`, `renderBedtime`                                                                  | `src/presentation/text-renderer.ts`              |
+| Claude Code hooks: detect tests, sync commits, install     | `detectAccomplishment`, `handleClaudeHook`, `installHooks`/`uninstallHooks`, `claudeCodeAgent`                     | `src/agents/claude-code/`                        |
+| Agent registry                                             | `AGENTS`, `getAgent`                                                                                               | `src/agents/index.ts`                            |
+| CLI commands and composition root                          | `run` (`init`, `status`, `uninstall`, `hook`, `help`), `composeDeps`                                               | `src/cli/main.ts`, `src/cli/compose.ts`          |
+| Launcher and `bitgrove` command on PATH                    | `LAUNCHER_SCRIPT`, `hookCommand`, `installCommandShim`/`removeCommandShim`                                         | `src/cli/launcher.ts`, `src/cli/command-shim.ts` |
+| Web page: view-model, data sources, themes                 | `toGroveView`, `GroveSource`/`EmbeddedGroveSource`/`SampleGroveSource`, `Theme`, `Grove2dKit`, `THEMES`/`getTheme` | `web/src/`                                       |
+| `bitgrove view` (writes and opens the page)                | `renderViewPage`, `DATA_PLACEHOLDER`                                                                               | `src/cli/view-page.ts`, `src/cli/main.ts`        |
+| One-command install and releases                           | `install.sh` (curl \| sh from GitHub Releases), release workflow on tag `v*`                                       | `install.sh`, `.github/workflows/release.yml`    |
 
 If you add, rename or remove one of these, update its row in the same commit.
 
@@ -68,7 +72,8 @@ bun install
 bun run check        # lint + typecheck + build + all tests (what CI runs)
 bun test             # tests only (e2e needs `bun run build` first)
 bun run format       # Biome: fix formatting
-bun run build        # bundle to dist/bitgrove.mjs
+bun run build        # web page (dist/web) + CLI bundle (dist/bitgrove.mjs)
+bun run dev:web      # design the web page with demo data (Vite dev server)
 node dist/bitgrove.mjs init   # install from source into your real Claude Code
 ```
 

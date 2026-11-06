@@ -1,0 +1,134 @@
+:root {
+  --ink: #2b2a26;
+  --ink-soft: #6b665c;
+  --paper: #f6f1e4;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #ece6d8;
+    --ink-soft: #a9a293;
+    --paper: #1d1f1b;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+}
+
+.app {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.app-header small {
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.theme-picker {
+  color: var(--ink-soft);
+}
+
+.app-note {
+  color: var(--ink-soft);
+}
+
+.grove-2d {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Meadow theme */
+.meadow {
+  border-radius: 16px;
+  padding: 24px 0 0;
+  background: linear-gradient(
+    #bfe3f2 0%,
+    #e4f3ea 62%,
+    #8cc46f 62%,
+    #79b25d 100%
+  );
+  overflow: hidden;
+}
+
+.meadow .grove-2d {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px 0;
+  align-items: end;
+}
+
+.meadow-tree {
+  margin: 0;
+  text-align: center;
+  color: #23361f;
+}
+
+.meadow-tree-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.meadow-tree figcaption {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 4px 16px;
+  background: #7cb85e;
+  font-size: 0.9rem;
+}
+
+.meadow-tree figcaption span {
+  opacity: 0.8;
+}
+
+.meadow-empty {
+  margin: 0;
+  padding: 48px 16px 96px;
+  text-align: center;
+  color: #23361f;
+}
+
+/* Terminal theme */
+.terminal {
+  border-radius: 12px;
+  padding: 20px;
+  background: #11140f;
+  color: #cfe8c4;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+
+.terminal-tree {
+  margin: 0 0 6px;
+}
+
+.terminal-tree span:last-child {
+  color: #8fa684;
+}

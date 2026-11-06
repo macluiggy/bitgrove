@@ -72,6 +72,7 @@ src/
   application/     use cases + ports (EventStore, Clock, Config)
   infrastructure/  file-backed adapters (JSONL event store, JSON config, system clock)
   presentation/    text rendering of the grove
+web/               the browser view (Preact + Vite): view-model, data sources, swappable themes
   agents/          one self-contained folder per agent (claude-code today)
   cli/             command routing and composition root
 ```
@@ -101,4 +102,7 @@ machine.
 4. Collections and rare discoveries tied to real milestones.
 5. Codex and OpenCode adapters.
 6. Optional private "save repo" that commits your grove each day.
-7. Pixel art.
+7. Prettier 2D themes (pixel art), then optionally 3D: themes are swappable
+   and only paint the same view-model.
+8. Optional cloud sync with `bitgrove login` (device-code flow), reusing the
+   same web page with a cloud `GroveSource`. Always opt-in (P8).
