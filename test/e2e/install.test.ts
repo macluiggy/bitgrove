@@ -29,7 +29,10 @@ function isJsonObject(value: unknown): value is JsonObject {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function cliEnvironment(home: string): Record<string, string> {
+function cliEnvironment(
+  home: string,
+  overrides: Record<string, string> = {},
+): Record<string, string> {
   const env: Record<string, string> = {};
 
   for (const [key, value] of Object.entries(process.env)) {
@@ -39,7 +42,7 @@ function cliEnvironment(home: string): Record<string, string> {
   }
 
   env.HOME = home;
-  return env;
+  return { ...env, ...overrides };
 }
 
 function toResult(result: ReturnType<typeof spawnSync>): CliResult {
@@ -54,10 +57,11 @@ function runNode(
   home: string,
   args: readonly string[],
   input?: string,
+  overrides: Record<string, string> = {},
 ): CliResult {
   return toResult(
     spawnSync('node', [DIST_ENTRY, ...args], {
-      env: cliEnvironment(home),
+      env: cliEnvironment(home, overrides),
       encoding: 'utf8',
       input,
     }),
@@ -78,6 +82,14 @@ function runLauncher(
       input,
     }),
   );
+}
+
+function commandShim(home: string): string {
+  return path.join(home, '.local', 'bin', 'bitgrove');
+}
+
+function pathWithUserBin(home: string): string {
+  return `${path.join(home, '.local', 'bin')}:${process.env.PATH ?? ''}`;
 }
 
 function settingsFile(home: string): string {
@@ -253,6 +265,64 @@ describe('bitgrove init', () => {
         ),
       ).toHaveLength(1);
     }
+  });
+});
+
+describe('bitgrove command on PATH', () => {
+  test('init adds a bitgrove command to ~/.local/bin that shows the grove', () => {
+    const result = runNode(home, ['init'], undefined, {
+      PATH: pathWithUserBin(home),
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('See it anytime with: bitgrove');
+    expect(result.stdout).not.toContain('PATH');
+
+    const shim = commandShim(home);
+    expect(statSync(shim).mode & 0o111).not.toBe(0);
+
+    const viaShim = toResult(
+      spawnSync('bitgrove', [], {
+        env: cliEnvironment(home, { PATH: pathWithUserBin(home) }),
+        encoding: 'utf8',
+      }),
+    );
+    expect(viaShim.status).toBe(0);
+    expect(viaShim.stdout).toContain('Your grove is empty.');
+  });
+
+  test('init explains how to add ~/.local/bin to PATH when it is missing', () => {
+    const result = runNode(home, ['init']);
+
+    expect(result.status).toBe(0);
+    expect(existsSync(commandShim(home))).toBe(true);
+    expect(result.stdout).toContain('export PATH="$HOME/.local/bin:$PATH"');
+  });
+
+  test('init and uninstall leave a foreign ~/.local/bin/bitgrove untouched', () => {
+    mkdirSync(path.dirname(commandShim(home)), { recursive: true });
+    writeFileSync(commandShim(home), '#!/bin/sh\necho mine\n');
+
+    const init = runNode(home, ['init']);
+    expect(init.status).toBe(0);
+    expect(init.stdout).toContain('already exists');
+    expect(readFileSync(commandShim(home), 'utf8')).toBe(
+      '#!/bin/sh\necho mine\n',
+    );
+
+    expect(runNode(home, ['uninstall']).status).toBe(0);
+    expect(readFileSync(commandShim(home), 'utf8')).toBe(
+      '#!/bin/sh\necho mine\n',
+    );
+  });
+
+  test('init is idempotent and uninstall removes the command', () => {
+    expect(runNode(home, ['init']).status).toBe(0);
+    expect(runNode(home, ['init']).stdout).not.toContain('already exists');
+    expect(existsSync(commandShim(home))).toBe(true);
+
+    expect(runNode(home, ['uninstall']).status).toBe(0);
+    expect(existsSync(commandShim(home))).toBe(false);
   });
 });
 

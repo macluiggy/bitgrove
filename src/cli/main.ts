@@ -12,6 +12,13 @@ import { AGENTS, getAgent } from '../agents';
 import { getGrove } from '../application';
 import { DEFAULT_RULES } from '../domain';
 import { renderGrove } from '../presentation';
+import {
+  installCommandShim,
+  PATH_HINT,
+  removeCommandShim,
+  type ShimInstall,
+  ShimOutcome,
+} from './command-shim';
 import { composeDeps } from './compose';
 import { hookCommand, LAUNCHER_SCRIPT } from './launcher';
 
@@ -55,6 +62,25 @@ function requireHome(env: Env, action: string): string {
   return home;
 }
 
+function commandLines(shim: ShimInstall, launcherPath: string): string[] {
+  if (shim.outcome === ShimOutcome.ForeignFileExists) {
+    return [
+      `${shim.shimPath} already exists and was not created by Bitgrove, so it was left untouched.`,
+      `See it anytime with: ${launcherPath}`,
+    ];
+  }
+
+  if (shim.onPath) {
+    return ['See it anytime with: bitgrove'];
+  }
+
+  return [
+    `See it anytime with: ${launcherPath}`,
+    `To type just "bitgrove", ${shim.shimPath} must be on your PATH.`,
+    PATH_HINT,
+  ];
+}
+
 function statusCommand(env: Env): number {
   try {
     const { deps } = composeDeps(env);
@@ -95,10 +121,12 @@ function initCommand(env: Env): number {
       timestampStamp(),
     );
 
+    const shim = installCommandShim(claudeHome, launcherPath, env.PATH);
+
     const lines = [
       '🌱 Bitgrove is planted.',
       'Keep working with Claude Code as usual — your grove grows on its own.',
-      'See it anytime with: bitgrove',
+      ...commandLines(shim, launcherPath),
     ];
 
     if (backupPath !== undefined) {
@@ -123,6 +151,7 @@ function uninstallCommand(env: Env): number {
       timestampStamp(),
     );
 
+    removeCommandShim(claudeHome);
     rmSync(paths.binDir, { recursive: true, force: true });
 
     const lines = [

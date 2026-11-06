@@ -25,9 +25,10 @@ curl -fsSL https://raw.githubusercontent.com/macluiggy/bitgrove/main/install.sh 
 ```
 
 The installer downloads the latest release and runs `bitgrove init`, which
-copies Bitgrove to `~/.bitgrove/bin/`, backs up `~/.claude/settings.json`, and
-registers three hooks (SessionStart, PostToolUse on Bash, Stop). Restart Claude
-Code afterwards.
+copies Bitgrove to `~/.bitgrove/bin/`, adds a `bitgrove` command to
+`~/.local/bin/`, backs up `~/.claude/settings.json`, and registers three hooks
+(SessionStart, PostToolUse on Bash, Stop). Restart Claude Code afterwards. If
+`~/.local/bin` is not on your PATH, `init` tells you how to add it.
 
 Run the same command again to update; your grove is kept. To pin a version:
 
@@ -58,16 +59,16 @@ git push --follow-tags
 Just work. Then, anytime:
 
 ```bash
-~/.bitgrove/bin/bitgrove
+bitgrove
 ```
 
 ## Uninstall
 
 ```bash
-~/.bitgrove/bin/bitgrove uninstall
+bitgrove uninstall
 ```
 
-Removes only Bitgrove's hooks and launcher. Your grove stays in `~/.bitgrove/`.
+Removes only Bitgrove's hooks, launcher and `bitgrove` command. Your grove stays in `~/.bitgrove/`.
 
 ## Privacy
 
