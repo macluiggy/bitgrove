@@ -4,6 +4,7 @@ import {
   type Deps,
   recordAccomplishment,
   startSession,
+  syncCommits,
 } from '../../application';
 import { renderBedtime, renderOvernight } from '../../presentation';
 import { detectAccomplishment } from './detectors';
@@ -29,6 +30,7 @@ export function handleClaudeHook(
   const activity = { project, agent: CLAUDE_CODE_AGENT_ID };
 
   if (payload.eventName === ClaudeHookEvent.SessionStart) {
+    syncCommits(deps, activity, payload.cwd);
     const report = startSession(deps, activity);
     return report === undefined
       ? undefined
@@ -59,6 +61,8 @@ export function handleClaudeHook(
     if (payload.stopHookActive === true) {
       return undefined;
     }
+
+    syncCommits(deps, activity, payload.cwd);
 
     return checkBedtime(deps, activity)
       ? { systemMessage: renderBedtime() }

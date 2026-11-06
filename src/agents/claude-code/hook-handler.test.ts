@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import type {
   Clock,
+  CommitLog,
   Deps,
   EventStore,
   LocalNow,
@@ -52,7 +53,15 @@ interface FakeDeps {
   events: FakeEventStore;
 }
 
-function createDeps(now: LocalNow, initialEvents: GroveEvent[] = []): FakeDeps {
+function createCommitLog(commits: LocalNow[] = []): CommitLog {
+  return { ownCommitsSince: () => commits };
+}
+
+function createDeps(
+  now: LocalNow,
+  initialEvents: GroveEvent[] = [],
+  commits: LocalNow[] = [],
+): FakeDeps {
   const events = createEventStore(initialEvents);
 
   return {
@@ -60,6 +69,7 @@ function createDeps(now: LocalNow, initialEvents: GroveEvent[] = []): FakeDeps {
       events,
       rules: createRulesStore(),
       clock: createClock(now),
+      commits: createCommitLog(commits),
     },
     events,
   };
@@ -94,7 +104,7 @@ const night: LocalNow = {
 };
 
 describe('handleClaudeHook', () => {
-  test('records a commit from a Bash PostToolUse payload', () => {
+  test('does not record a commit from Bash output: commits come from git', () => {
     const { deps, events } = createDeps(noon);
 
     const output = handleClaudeHook(
@@ -116,10 +126,60 @@ describe('handleClaudeHook', () => {
     );
 
     expect(output).toBeUndefined();
-    expect(events.events).toHaveLength(1);
-    expect(events.events[0]?.type).toBe(EventType.CommitMade);
-    expect(events.events[0]?.project).toBe('my-api');
-    expect(events.events[0]?.agent).toBe('claude-code');
+    expect(events.events).toEqual([]);
+  });
+
+  test('records own commits from git on Stop', () => {
+    const seen = makeEvent(EventType.SessionStarted, '2024-05-09');
+    const { deps, events } = createDeps(
+      noon,
+      [seen],
+      [
+        {
+          instant: '2024-05-10T11:00:00.000Z',
+          localDate: '2024-05-10',
+          localHour: 11,
+        },
+      ],
+    );
+
+    handleClaudeHook(
+      { cwd: '/work/my-api', hook_event_name: 'Stop', stop_hook_active: false },
+      deps,
+    );
+
+    const commits = events.events.filter(
+      (event) => event.type === EventType.CommitMade,
+    );
+    expect(commits).toHaveLength(1);
+    expect(commits[0]?.project).toBe('my-api');
+    expect(commits[0]?.day).toBe('2024-05-10');
+  });
+
+  test('reports overnight growth from a commit made outside the agent', () => {
+    const seen = makeEvent(EventType.SessionStarted, '2024-05-08');
+    const { deps } = createDeps(
+      noon,
+      [seen],
+      [
+        {
+          instant: '2024-05-09T15:00:00.000Z',
+          localDate: '2024-05-09',
+          localHour: 15,
+        },
+      ],
+    );
+
+    const output = handleClaudeHook(
+      {
+        cwd: '/work/my-api',
+        hook_event_name: 'SessionStart',
+        source: 'startup',
+      },
+      deps,
+    );
+
+    expect(output?.systemMessage).toContain('my-api');
   });
 
   test('records a passing test run from a Bash PostToolUse payload', () => {

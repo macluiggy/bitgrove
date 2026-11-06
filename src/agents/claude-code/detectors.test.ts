@@ -95,71 +95,61 @@ describe('detectAccomplishment test runs', () => {
   }
 });
 
-interface CommitCase {
-  name: string;
-  input: OutcomeInput;
-  expected: DetectedAccomplishment | undefined;
-}
-
-const COMMIT_CASES: readonly CommitCase[] = [
-  {
-    name: 'counts a chained git commit with a hash line',
-    input: {
-      command: 'git add . && git commit -m "x"',
-      stdout: '[main 1a2b3c4] x\n 1 file changed\n',
-    },
-    expected: EventType.CommitMade,
-  },
-  {
-    name: 'counts a git commit with options before the subcommand',
-    input: {
-      command: 'git -C repo commit -m "x"',
-      stdout: '[main 1a2b3c4] x\n',
-    },
-    expected: EventType.CommitMade,
-  },
-  {
-    name: 'counts a git commit with a root-commit parenthetical',
-    input: {
-      command: 'git commit -m "first"',
-      stdout: '[main (root-commit) 1a2b3c4] first\n',
-    },
-    expected: EventType.CommitMade,
-  },
-  {
-    name: 'ignores a git commit without a hash line',
-    input: { command: 'git commit -m "x"', stdout: 'nothing to commit\n' },
-    expected: undefined,
-  },
-  {
-    name: 'ignores a git commit dry run',
-    input: {
-      command: 'git commit --dry-run',
-      stdout: '[main 1a2b3c4] x\n',
-    },
-    expected: undefined,
-  },
-  {
-    name: 'ignores a commit-like command without git',
-    input: { command: 'commit -m "x"', stdout: '[main 1a2b3c4] x\n' },
-    expected: undefined,
-  },
-];
-
 describe('detectAccomplishment commits', () => {
-  for (const testCase of COMMIT_CASES) {
-    test(testCase.name, () => {
-      expect(detect(testCase.input)).toBe(testCase.expected);
-    });
-  }
+  test('leaves commits to git history, even when Bash shows a commit', () => {
+    expect(
+      detect({
+        command: 'git add . && git commit -m "x"',
+        stdout: '[main 1a2b3c4] x\n',
+      }),
+    ).toBeUndefined();
+  });
 
-  test('prefers a commit when a command also runs tests', () => {
+  test('still counts the tests when a command also commits', () => {
     expect(
       detect({
         command: 'bun test && git commit -m "x"',
         stdout: ' 12 pass\n 0 fail\n[main 1a2b3c4] x\n',
       }),
-    ).toBe(EventType.CommitMade);
+    ).toBe(EventType.TestsPassed);
+  });
+});
+
+describe('detectAccomplishment: named test scripts', () => {
+  const clean = ' 3 pass\n 0 fail\n';
+
+  const TEST_SCRIPTS: readonly string[] = [
+    'bun run test:unit',
+    'npm run test:e2e',
+    'pnpm run test:integration',
+    'yarn test:unit',
+    'bun run test-ci',
+    'make test',
+  ];
+
+  for (const command of TEST_SCRIPTS) {
+    test(`counts "${command}"`, () => {
+      expect(detect({ command, stdout: clean })).toBe(EventType.TestsPassed);
+    });
+  }
+
+  const NOT_TEST_SCRIPTS: readonly string[] = [
+    'bun run check',
+    'npm run lint',
+    'bun run testimonials',
+    'make build',
+  ];
+
+  for (const command of NOT_TEST_SCRIPTS) {
+    test(`ignores "${command}"`, () => {
+      expect(detect({ command, stdout: clean })).toBeUndefined();
+    });
+  }
+
+  test('ignores a failing named test script', () => {
+    expect(
+      detect({ command: 'bun run test:unit', stdout: ' 3 pass\n 2 fail\n' }),
+    ).toBeUndefined();
   });
 });
 

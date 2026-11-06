@@ -4,25 +4,33 @@ import {
   type GroveEvent,
   gameDayOf,
 } from '../domain';
-import type { Activity, Deps } from './ports';
+import type { Activity, Deps, LocalNow } from './ports';
 
 type BuildEventDeps = Pick<Deps, 'clock' | 'rules'>;
+
+export function buildEventAt(
+  deps: Pick<Deps, 'rules'>,
+  activity: Activity,
+  eventType: EventType,
+  time: LocalNow,
+): GroveEvent {
+  const rules = deps.rules.load();
+
+  return {
+    v: EVENT_SCHEMA_VERSION,
+    type: eventType,
+    at: time.instant,
+    day: gameDayOf(time.localDate, time.localHour, rules.dayBoundaryHour),
+    hour: time.localHour,
+    project: activity.project,
+    agent: activity.agent,
+  };
+}
 
 export function buildEvent(
   deps: BuildEventDeps,
   activity: Activity,
   eventType: EventType,
 ): GroveEvent {
-  const now = deps.clock.now();
-  const rules = deps.rules.load();
-
-  return {
-    v: EVENT_SCHEMA_VERSION,
-    type: eventType,
-    at: now.instant,
-    day: gameDayOf(now.localDate, now.localHour, rules.dayBoundaryHour),
-    hour: now.localHour,
-    project: activity.project,
-    agent: activity.agent,
-  };
+  return buildEventAt(deps, activity, eventType, deps.clock.now());
 }

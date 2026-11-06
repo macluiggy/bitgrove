@@ -48,7 +48,13 @@ Every mechanic is checked against one question:
 
 - One **tree per project** (identified by its folder name).
 - A **tended day** for a project is a day with at least one counted accomplishment
-  in work hours: a test run that passed or a commit that landed.
+  in work hours: a test run that passed (`test`, `test:unit`, `make test`…) or
+  a commit of yours that landed.
+- Commits come from **git history**, not from what the agent prints: at the
+  start and end of each agent turn Bitgrove reads your own commits
+  (matching the repo's `user.email`, every local branch) since it first saw
+  you, so commits made by hand in a terminal or an IDE count too. Old history
+  from before Bitgrove never grows trees.
 - Trees grow by **tended days**, never by volume within a day (P1, P5).
 - Stages: seed 🌰 (0) → sprout 🌱 (1) → sapling 🌿 (3) → young tree 🪴 (7) →
   tree 🌳 (15) → ancient tree 🌲 (30) tended days.
@@ -82,6 +88,8 @@ src/
 ## Privacy
 
 Bitgrove stores only: event type, timestamp, project folder name, agent name.
+To count commits it reads only their timestamps from your local git history,
+filtered by your git email.
 Never code, prompts, file paths, diffs or command output. Nothing leaves your
 machine.
 

@@ -13,6 +13,7 @@ import { getGrove } from './get-grove';
 import type {
   Activity,
   Clock,
+  CommitLog,
   Deps,
   EventStore,
   LocalNow,
@@ -20,6 +21,23 @@ import type {
 } from './ports';
 import { recordAccomplishment } from './record-accomplishment';
 import { startSession } from './start-session';
+import { syncCommits } from './sync-commits';
+
+interface FakeCommitLog extends CommitLog {
+  readonly calls: { projectDir: string; since: string }[];
+}
+
+function createCommitLog(commits: LocalNow[] = []): FakeCommitLog {
+  const calls: { projectDir: string; since: string }[] = [];
+
+  return {
+    calls,
+    ownCommitsSince: (projectDir, since) => {
+      calls.push({ projectDir, since });
+      return commits;
+    },
+  };
+}
 
 interface FakeEventStore extends EventStore {
   readonly events: GroveEvent[];
@@ -55,22 +73,27 @@ function createClock(now: LocalNow): Clock {
 interface FakeDeps {
   deps: Deps;
   events: FakeEventStore;
+  commits: FakeCommitLog;
 }
 
 function createDeps(
   now: LocalNow,
   initialEvents: GroveEvent[] = [],
   rules: GroveRules = DEFAULT_RULES,
+  commitTimes: LocalNow[] = [],
 ): FakeDeps {
   const events = createEventStore(initialEvents);
+  const commits = createCommitLog(commitTimes);
 
   return {
     deps: {
       events,
       rules: createRulesStore(rules),
       clock: createClock(now),
+      commits,
     },
     events,
+    commits,
   };
 }
 
@@ -238,5 +261,108 @@ describe('getGrove', () => {
       { project: 'alpha', tendedDays: 2, stage: Stage.Sprout },
       { project: 'beta', tendedDays: 0, stage: Stage.Seed },
     ]);
+  });
+});
+
+describe('syncCommits', () => {
+  const now: LocalNow = {
+    instant: '2024-05-10T15:00:00.000Z',
+    localDate: '2024-05-10',
+    localHour: 15,
+  };
+  const activity: Activity = { project: 'alpha', agent: 'claude-code' };
+  const firstSeen = makeEvent({
+    type: EventType.SessionStarted,
+    day: '2024-05-08',
+  });
+
+  const commitAt = (
+    instant: string,
+    localDate: string,
+    localHour: number,
+  ): LocalNow => ({ instant, localDate, localHour });
+
+  test('records nothing and skips git before Bitgrove has seen any session', () => {
+    const { deps, events, commits } = createDeps(now, [], DEFAULT_RULES, [
+      commitAt('2024-05-10T10:00:00.000Z', '2024-05-10', 10),
+    ]);
+
+    expect(syncCommits(deps, activity, '/work/alpha')).toBe(0);
+    expect(events.events).toEqual([]);
+    expect(commits.calls).toEqual([]);
+  });
+
+  test('records each own commit since the first event, on its real day and hour', () => {
+    const { deps, events, commits } = createDeps(
+      now,
+      [firstSeen],
+      DEFAULT_RULES,
+      [
+        commitAt('2024-05-09T10:00:00.000Z', '2024-05-09', 10),
+        commitAt('2024-05-10T11:30:00.000Z', '2024-05-10', 11),
+      ],
+    );
+
+    expect(syncCommits(deps, activity, '/work/alpha')).toBe(2);
+    expect(commits.calls).toEqual([
+      { projectDir: '/work/alpha', since: firstSeen.at },
+    ]);
+
+    const recorded = events.events.slice(1);
+    expect(recorded).toEqual([
+      {
+        v: EVENT_SCHEMA_VERSION,
+        type: EventType.CommitMade,
+        at: '2024-05-09T10:00:00.000Z',
+        day: '2024-05-09',
+        hour: 10,
+        project: 'alpha',
+        agent: 'claude-code',
+      },
+      {
+        v: EVENT_SCHEMA_VERSION,
+        type: EventType.CommitMade,
+        at: '2024-05-10T11:30:00.000Z',
+        day: '2024-05-10',
+        hour: 11,
+        project: 'alpha',
+        agent: 'claude-code',
+      },
+    ]);
+  });
+
+  test('a commit before the day boundary belongs to the previous game day', () => {
+    const { deps, events } = createDeps(now, [firstSeen], DEFAULT_RULES, [
+      commitAt('2024-05-10T02:00:00.000Z', '2024-05-10', 2),
+    ]);
+
+    syncCommits(deps, activity, '/work/alpha');
+
+    expect(events.events.at(-1)?.day).toBe('2024-05-09');
+    expect(events.events.at(-1)?.hour).toBe(2);
+  });
+
+  test('never records the same commit twice for a project', () => {
+    const commit = commitAt('2024-05-09T10:00:00.000Z', '2024-05-09', 10);
+    const { deps, events } = createDeps(now, [firstSeen], DEFAULT_RULES, [
+      commit,
+    ]);
+
+    expect(syncCommits(deps, activity, '/work/alpha')).toBe(1);
+    expect(syncCommits(deps, activity, '/work/alpha')).toBe(0);
+    expect(
+      events.events.filter((event) => event.type === EventType.CommitMade),
+    ).toHaveLength(1);
+  });
+
+  test('grows the tree on the day of a commit made outside the agent', () => {
+    const { deps } = createDeps(now, [firstSeen], DEFAULT_RULES, [
+      commitAt('2024-05-09T10:00:00.000Z', '2024-05-09', 10),
+    ]);
+
+    syncCommits(deps, activity, '/work/alpha');
+
+    const tree = getGrove(deps).trees.find((t) => t.project === 'alpha');
+    expect(tree?.tendedDays).toBe(1);
   });
 });

@@ -184,20 +184,32 @@ function readEventLines(home: string): JsonObject[] {
     });
 }
 
-const COMMIT_PAYLOAD = JSON.stringify({
+const TESTS_PASSED_PAYLOAD = JSON.stringify({
   session_id: 'session-1',
   transcript_path: '/tmp/transcript.jsonl',
   cwd: '/x/my-api',
   hook_event_name: 'PostToolUse',
   tool_name: 'Bash',
-  tool_input: { command: 'git add . && git commit -m "x"' },
+  tool_input: { command: 'bun run test:unit' },
   tool_response: {
-    stdout: '[main 1a2b3c4] x\n 1 file changed\n',
+    stdout: ' 12 pass\n 0 fail\n',
     stderr: '',
     interrupted: false,
     isImage: false,
   },
 });
+
+function hookPayload(cwd: string, event: string): string {
+  return JSON.stringify({
+    cwd,
+    hook_event_name: event,
+    stop_hook_active: false,
+  });
+}
+
+function gitIn(repo: string, args: readonly string[]): void {
+  spawnSync('git', ['-C', repo, ...args], { stdio: 'ignore' });
+}
 
 let home: string;
 
@@ -327,25 +339,25 @@ describe('bitgrove command on PATH', () => {
 });
 
 describe('bitgrove hook', () => {
-  test('records a commit, shows the grove, and uninstalls cleanly', () => {
+  test('records a passing test run, shows the grove, and uninstalls cleanly', () => {
     writeForeignSettings(home);
     expect(runNode(home, ['init']).status).toBe(0);
 
     const hookResult = runLauncher(
       home,
       ['hook', 'claude-code'],
-      COMMIT_PAYLOAD,
+      TESTS_PASSED_PAYLOAD,
     );
 
     expect(hookResult.status).toBe(0);
     expect(hookResult.stdout).toBe('');
 
-    const commit = readEventLines(home).find(
-      (event) => event.type === 'commit.made',
+    const passed = readEventLines(home).find(
+      (event) => event.type === 'tests.passed',
     );
-    expect(commit).toBeDefined();
-    expect(commit?.project).toBe('my-api');
-    expect(commit?.agent).toBe('claude-code');
+    expect(passed).toBeDefined();
+    expect(passed?.project).toBe('my-api');
+    expect(passed?.agent).toBe('claude-code');
 
     const status = runNode(home, ['status']);
     expect(status.status).toBe(0);
@@ -368,5 +380,52 @@ describe('bitgrove hook', () => {
 
     expect(existsSync(eventsPath)).toBe(true);
     expect(existsSync(path.join(home, '.bitgrove', 'bin'))).toBe(false);
+  });
+});
+
+describe('bitgrove commits from git', () => {
+  test('a commit made outside the agent grows the project tree', () => {
+    const repo = path.join(home, 'my-api');
+    mkdirSync(repo);
+    gitIn(repo, ['init', '-q']);
+    gitIn(repo, ['config', 'user.email', 'me@example.com']);
+    gitIn(repo, ['config', 'user.name', 'Me']);
+    gitIn(repo, ['config', 'commit.gpgsign', 'false']);
+
+    expect(runNode(home, ['init']).status).toBe(0);
+    expect(
+      runLauncher(
+        home,
+        ['hook', 'claude-code'],
+        hookPayload(repo, 'SessionStart'),
+      ).status,
+    ).toBe(0);
+
+    // A commit made by hand, one minute after Bitgrove first saw the project.
+    const later = `${Math.floor(Date.now() / 1000) + 60} +0000`;
+    spawnSync('git', ['-C', repo, 'commit', '--allow-empty', '-q', '-m', 'x'], {
+      stdio: 'ignore',
+      env: {
+        ...process.env,
+        GIT_AUTHOR_DATE: later,
+        GIT_COMMITTER_DATE: later,
+      },
+    });
+
+    expect(
+      runLauncher(home, ['hook', 'claude-code'], hookPayload(repo, 'Stop'))
+        .status,
+    ).toBe(0);
+
+    const commits = readEventLines(home).filter(
+      (event) => event.type === 'commit.made',
+    );
+    expect(commits).toHaveLength(1);
+    expect(commits[0]?.project).toBe('my-api');
+
+    runLauncher(home, ['hook', 'claude-code'], hookPayload(repo, 'Stop'));
+    expect(
+      readEventLines(home).filter((event) => event.type === 'commit.made'),
+    ).toHaveLength(1);
   });
 });

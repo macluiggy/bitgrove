@@ -1,6 +1,7 @@
 import type { Deps } from '../application';
 import {
   type BitgrovePaths,
+  GitCommitLog,
   JsonlEventStore,
   JsonRulesStore,
   type PathEnvironment,
@@ -21,6 +22,7 @@ export function composeDeps(env: PathEnvironment): Composition {
       events: new JsonlEventStore(paths.eventsFile),
       rules: new JsonRulesStore(paths.configFile),
       clock: new SystemClock(),
+      commits: new GitCommitLog(),
     },
     paths,
   };

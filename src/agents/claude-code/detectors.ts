@@ -1,8 +1,8 @@
 import { EventType } from '../../domain';
 
-export type DetectedAccomplishment =
-  | typeof EventType.TestsPassed
-  | typeof EventType.CommitMade;
+// Commits are not detected here: they come from git history (see
+// GitCommitLog), which also sees commits made outside the agent.
+export type DetectedAccomplishment = typeof EventType.TestsPassed;
 
 export interface CommandOutcome {
   command: string;
@@ -10,10 +10,6 @@ export interface CommandOutcome {
   stderr: string;
   interrupted: boolean;
 }
-
-const GIT_COMMIT_PATTERN = /\bgit\b[^;&|\n]*?\bcommit\b(?!-)/;
-const COMMIT_REPORT_PATTERN = /^\[[^\]\n]+ [0-9a-f]{7,40}\]/m;
-const DRY_RUN_FLAG = '--dry-run';
 
 const FAILURE_PATTERNS: readonly RegExp[] = [
   /\b[1-9]\d*\s+(?:fail|fails|failed|failing|failures?)\b/i,
@@ -29,11 +25,15 @@ const ENV_ASSIGNMENTS = String.raw`(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*`;
 const PACKAGE_LAUNCHER = String.raw`(?:npx\s+|bunx\s+|pnpm\s+(?:exec|dlx)\s+|yarn\s+|python3?\s+-m\s+|\./node_modules/\.bin/)?`;
 const TOKEN_END = String.raw`(?=\s|$)`;
 
+// `test`, or a named test script such as `test:unit`, `test:e2e` or `test-ci`.
+const TEST_SCRIPT = String.raw`test(?:[:-][\w:-]*)?`;
+
 const TEST_RUNNERS: readonly string[] = [
-  String.raw`bun\s+(?:run\s+)?test`,
-  String.raw`npm\s+(?:run\s+)?test`,
-  String.raw`pnpm\s+(?:run\s+)?test`,
-  String.raw`yarn\s+(?:run\s+)?test`,
+  String.raw`bun\s+(?:run\s+)?${TEST_SCRIPT}`,
+  String.raw`npm\s+(?:run\s+)?${TEST_SCRIPT}`,
+  String.raw`pnpm\s+(?:run\s+)?${TEST_SCRIPT}`,
+  String.raw`yarn\s+(?:run\s+)?${TEST_SCRIPT}`,
+  String.raw`make\s+test`,
   'vitest',
   'jest',
   'pytest',
@@ -53,10 +53,6 @@ const TEST_RUNNER_PATTERN = new RegExp(
   'm',
 );
 
-function isCommitCommand(command: string): boolean {
-  return GIT_COMMIT_PATTERN.test(command) && !command.includes(DRY_RUN_FLAG);
-}
-
 function invokesTestRunner(command: string): boolean {
   return TEST_RUNNER_PATTERN.test(command);
 }
@@ -68,13 +64,6 @@ function hasFailureMarker(output: string): boolean {
 export function detectAccomplishment(
   input: CommandOutcome,
 ): DetectedAccomplishment | undefined {
-  if (
-    isCommitCommand(input.command) &&
-    COMMIT_REPORT_PATTERN.test(input.stdout)
-  ) {
-    return EventType.CommitMade;
-  }
-
   if (input.interrupted) {
     return undefined;
   }

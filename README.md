@@ -73,7 +73,9 @@ Removes only Bitgrove's hooks, launcher and `bitgrove` command. Your grove stays
 ## Privacy
 
 Stored locally only: event type, time, project folder name, agent name. Never
-code, prompts, paths or command output. Nothing leaves your machine.
+code, prompts, paths or command output. Commits are counted from your local
+git history (timestamps only, filtered by your git email). Nothing leaves your
+machine.
 
 ## Design
 
