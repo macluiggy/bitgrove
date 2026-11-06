@@ -16,9 +16,26 @@ Bitgrove · 12 tended days
 🌰 scratch   0 days ·  1 to 🌱
 ```
 
-## Install (from source, for now)
+## Install
 
-Requires Bun (to build) and Node 20+ or Bun (to run).
+Requires Linux or macOS (Windows via WSL), `curl`, and Node 20+ or Bun.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/macluiggy/bitgrove/main/install.sh | sh
+```
+
+The installer downloads the latest release and runs `bitgrove init`, which
+copies Bitgrove to `~/.bitgrove/bin/`, backs up `~/.claude/settings.json`, and
+registers three hooks (SessionStart, PostToolUse on Bash, Stop). Restart Claude
+Code afterwards.
+
+Run the same command again to update; your grove is kept. To pin a version:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/macluiggy/bitgrove/main/install.sh | BITGROVE_VERSION=0.1.0 sh
+```
+
+### From source
 
 ```bash
 bun install
@@ -26,9 +43,15 @@ bun run build
 node dist/bitgrove.mjs init
 ```
 
-`init` copies Bitgrove to `~/.bitgrove/bin/`, backs up `~/.claude/settings.json`,
-and registers three hooks (SessionStart, PostToolUse on Bash, Stop). Running it
-twice is safe.
+## Release
+
+Bump the version and push the tag; GitHub Actions checks, builds and publishes
+`bitgrove.mjs` and `install.sh` to a GitHub Release.
+
+```bash
+npm version minor
+git push --follow-tags
+```
 
 ## Use
 
