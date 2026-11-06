@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
+import { buildWorld, type World } from '../../src/domain';
 import type { GroveData, GroveSource } from './data/grove-source';
 import { eventDays, eventsUntil } from './dev/time-travel';
 import { TimeTravelBar } from './dev/time-travel-bar';
@@ -40,7 +41,7 @@ export function App({ source }: { source: GroveSource }) {
   );
   const shownDayIndex = dayIndex ?? days.length - 1;
 
-  const grove = useMemo(() => {
+  const views = useMemo(() => {
     if (state.status !== 'ready') {
       return undefined;
     }
@@ -48,7 +49,10 @@ export function App({ source }: { source: GroveSource }) {
     const events = TIME_TRAVEL
       ? eventsUntil(state.data.events, days[shownDayIndex])
       : state.data.events;
-    return toGroveView(events, state.data.rules);
+    return {
+      grove: toGroveView(events, state.data.rules),
+      world: buildWorld(events, state.data.rules),
+    };
   }, [state, days, shownDayIndex]);
 
   function chooseTheme(id: string) {
@@ -59,16 +63,8 @@ export function App({ source }: { source: GroveSource }) {
   return (
     <main class={`app theme-${theme.id}`}>
       <header class="app-header">
-        <h1>
-          Bitgrove
-          {grove !== undefined && (
-            <small>
-              {' '}
-              · {grove.totalTendedDays}{' '}
-              {grove.totalTendedDays === 1 ? 'tended day' : 'tended days'}
-            </small>
-          )}
-        </h1>
+        <h1>Bitgrove</h1>
+        {views !== undefined && <LevelBadge world={views.world} />}
         <label class="theme-picker">
           Theme{' '}
           <select
@@ -92,14 +88,40 @@ export function App({ source }: { source: GroveSource }) {
           No grove data here. Open this page with <code>bitgrove view</code>.
         </p>
       )}
-      {TIME_TRAVEL && grove !== undefined && (
+      {TIME_TRAVEL && views !== undefined && (
         <TimeTravelBar
           days={days}
           index={shownDayIndex}
           onChange={setDayIndex}
         />
       )}
-      {grove !== undefined && <theme.Scene grove={grove} />}
+      {views !== undefined && (
+        <theme.Scene grove={views.grove} world={views.world} />
+      )}
     </main>
+  );
+}
+
+function LevelBadge({ world }: { world: World }) {
+  const { level, levelXp, nextLevelXp } = world.level;
+  const progress = Math.round((levelXp / nextLevelXp) * 100);
+
+  return (
+    <div class="level">
+      <strong>Level {level}</strong>
+      <div
+        class="level-bar"
+        role="progressbar"
+        aria-label={`XP to level ${level + 1}`}
+        aria-valuenow={progress}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      >
+        <span class="bar-fill" style={{ width: `${progress}%` }} />
+      </div>
+      <small>
+        {levelXp} / {nextLevelXp} XP · {world.totalXp} total
+      </small>
+    </div>
   );
 }

@@ -5,126 +5,47 @@ import {
   useRef,
   useState,
 } from 'preact/hooks';
-import type { GroveView } from '../../view-model/grove-view';
+import { type Ecosystem, ERA_THRESHOLDS } from '../../../../src/domain';
+import { ERA_EMOJI, ERA_NAME } from '../../../../src/presentation/labels';
 import { type SceneProps, type Theme, ThemeId } from '../theme';
-import tilesheetUrl from './assets/kenney-tiny-town/tilemap_packed.png';
-import { type ForestScene, layoutForest } from './forest-layout';
-import { TILE_SIZE, TILESHEET_COLUMNS } from './tiles';
+import farmSheetUrl from './assets/kenney-tiny-farm/tilemap_packed.png';
+import townSheetUrl from './assets/kenney-tiny-town/tilemap_packed.png';
+import { layoutEcosystem, type PlotLayout } from './ecosystem-layout';
+import { Sheet, type Sprite, TILE_SIZE, TILESHEET_COLUMNS } from './sprites';
 
 // Pixel art is drawn at a whole-number zoom so every pixel stays crisp.
 const ZOOM = 3;
 const PIXEL = TILE_SIZE * ZOOM;
-const PLATE_COLOR = '#5b3a24';
-const PLATE_BORDER = '#2e1d12';
-const PLATE_TEXT = '#fcefc8';
-const LABEL_FONT = `bold ${5 * ZOOM}px ui-monospace, Menlo, monospace`;
 
-function drawTile(
-  ctx: CanvasRenderingContext2D,
-  sheet: HTMLImageElement,
-  tile: number,
-  col: number,
-  row: number,
-  scale = 1,
-) {
-  const sx = (tile % TILESHEET_COLUMNS) * TILE_SIZE;
-  const sy = Math.floor(tile / TILESHEET_COLUMNS) * TILE_SIZE;
+type Sheets = Record<Sheet, HTMLImageElement>;
 
-  ctx.drawImage(
-    sheet,
-    sx,
-    sy,
-    TILE_SIZE,
-    TILE_SIZE,
-    col * PIXEL,
-    row * PIXEL,
-    PIXEL * scale,
-    PIXEL * scale,
-  );
-}
-
-function drawLabel(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  col: number,
-  row: number,
-) {
-  ctx.font = LABEL_FONT;
-  const width = ctx.measureText(text).width + 6 * ZOOM;
-  const height = 8 * ZOOM;
-  const x = Math.round(col * PIXEL - width / 2);
-  const y = Math.round((row + 0.5) * PIXEL - height / 2);
-
-  ctx.fillStyle = PLATE_BORDER;
-  ctx.fillRect(x - ZOOM, y - ZOOM, width + 2 * ZOOM, height + 2 * ZOOM);
-  ctx.fillStyle = PLATE_COLOR;
-  ctx.fillRect(x, y, width, height);
-  ctx.fillStyle = PLATE_TEXT;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(text, x + width / 2, y + height / 2 + ZOOM / 2);
-}
-
-function paint(
-  ctx: CanvasRenderingContext2D,
-  scene: ForestScene,
-  sheet: HTMLImageElement,
-) {
-  ctx.imageSmoothingEnabled = false;
-
-  scene.ground.forEach((tile, index) => {
-    drawTile(
-      ctx,
-      sheet,
-      tile,
-      index % scene.cols,
-      Math.floor(index / scene.cols),
-    );
-  });
-
-  for (const placed of scene.tiles) {
-    drawTile(ctx, sheet, placed.tile, placed.col, placed.row, placed.scale);
-  }
-
-  for (const label of scene.labels) {
-    drawLabel(ctx, label.text, label.col, label.row);
-  }
-}
-
-function describe(grove: GroveView): string {
-  if (grove.isEmpty) {
-    return 'A quiet forest. No clearings yet.';
-  }
-
-  const clearings = grove.trees
-    .map(
-      (tree) =>
-        `${tree.project}: ${tree.tendedDays} tended days, ${tree.stage}`,
-    )
-    .join('; ');
-  return `A forest with one clearing per project. ${clearings}.`;
-}
-
-// The tilesheet loads once per page, then every repaint is synchronous.
-let tilesheet: Promise<HTMLImageElement> | undefined;
-
-function loadTilesheet(): Promise<HTMLImageElement> {
-  tilesheet ??= new Promise((resolve, reject) => {
+function loadImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
     const image = new Image();
     image.onload = () => resolve(image);
     image.onerror = reject;
-    image.src = tilesheetUrl;
+    image.src = url;
   });
-  return tilesheet;
 }
 
-function useTilesheet(): HTMLImageElement | undefined {
-  const [sheet, setSheet] = useState<HTMLImageElement>();
+// Tilesheets load once per page; every repaint after that is synchronous.
+let sheets: Promise<Sheets> | undefined;
+
+function loadSheets(): Promise<Sheets> {
+  sheets ??= Promise.all([
+    loadImage(townSheetUrl),
+    loadImage(farmSheetUrl),
+  ]).then(([town, farm]) => ({ [Sheet.Town]: town, [Sheet.Farm]: farm }));
+  return sheets;
+}
+
+function useSheets(): Sheets | undefined {
+  const [loaded, setLoaded] = useState<Sheets>();
 
   useEffect(() => {
     let active = true;
-    loadTilesheet().then(
-      (image) => active && setSheet(image),
+    loadSheets().then(
+      (value) => active && setLoaded(value),
       () => {},
     );
     return () => {
@@ -132,40 +53,174 @@ function useTilesheet(): HTMLImageElement | undefined {
     };
   }, []);
 
-  return sheet;
+  return loaded;
 }
 
-function ForestSceneView({ grove }: SceneProps) {
-  const scene = useMemo(() => layoutForest(grove), [grove]);
-  const sheet = useTilesheet();
+function drawSprite(
+  ctx: CanvasRenderingContext2D,
+  images: Sheets,
+  sprite: Sprite,
+  col: number,
+  row: number,
+  scale: number,
+) {
+  const image = images[sprite.sheet];
+  const cell = PIXEL * scale;
+
+  sprite.tiles.forEach((tileRow, dr) => {
+    tileRow.forEach((tile, dc) => {
+      ctx.drawImage(
+        image,
+        (tile % TILESHEET_COLUMNS) * TILE_SIZE,
+        Math.floor(tile / TILESHEET_COLUMNS) * TILE_SIZE,
+        TILE_SIZE,
+        TILE_SIZE,
+        (col + dc * scale) * PIXEL,
+        (row + dr * scale) * PIXEL,
+        cell,
+        cell,
+      );
+    });
+  });
+}
+
+function paint(
+  ctx: CanvasRenderingContext2D,
+  layout: PlotLayout,
+  images: Sheets,
+) {
+  ctx.imageSmoothingEnabled = false;
+
+  layout.ground.forEach((sprite, index) => {
+    drawSprite(
+      ctx,
+      images,
+      sprite,
+      index % layout.cols,
+      Math.floor(index / layout.cols),
+      1,
+    );
+  });
+
+  for (const item of layout.items) {
+    drawSprite(ctx, images, item.sprite, item.col, item.row, item.scale);
+  }
+}
+
+function plural(amount: number, singular: string, many: string): string {
+  return `${amount} ${amount === 1 ? singular : many}`;
+}
+
+function lifeSummary(ecosystem: Ecosystem): string {
+  const parts = [plural(ecosystem.trees.length, 'tree', 'trees')];
+  if (ecosystem.animals.length > 0) {
+    parts.push(plural(ecosystem.animals.length, 'animal', 'animals'));
+  }
+  if (ecosystem.buildings.length > 0) {
+    parts.push(plural(ecosystem.buildings.length, 'building', 'buildings'));
+  }
+  return parts.join(' · ');
+}
+
+/** 0..1 progress through the current era. */
+function eraProgress(ecosystem: Ecosystem): number {
+  const current = ERA_THRESHOLDS.find((t) => t.era === ecosystem.era);
+  const next = ERA_THRESHOLDS.find((t) => t.era === ecosystem.nextEra);
+  if (current === undefined || next === undefined) {
+    return 1;
+  }
+  const span = next.minTendedDays - current.minTendedDays;
+  return span <= 0 ? 1 : (ecosystem.tendedDays - current.minTendedDays) / span;
+}
+
+function EcosystemCard({
+  ecosystem,
+  images,
+}: {
+  ecosystem: Ecosystem;
+  images: Sheets | undefined;
+}) {
+  const layout = useMemo(() => layoutEcosystem(ecosystem), [ecosystem]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Layout effect: repaint before the browser shows the resized (and so
-  // cleared) canvas, so scrubbing through days never flashes empty.
+  // cleared) canvas, so time travel never flashes an empty plot.
   useLayoutEffect(() => {
     const ctx = canvasRef.current?.getContext('2d');
-    if (ctx !== null && ctx !== undefined && sheet !== undefined) {
-      paint(ctx, scene, sheet);
+    if (ctx !== null && ctx !== undefined && images !== undefined) {
+      paint(ctx, layout, images);
     }
-  }, [scene, sheet]);
+  }, [layout, images]);
+
+  const progress = Math.round(eraProgress(ecosystem) * 100);
+
+  return (
+    <article class="eco-card">
+      <canvas
+        ref={canvasRef}
+        width={layout.cols * PIXEL}
+        height={layout.rows * PIXEL}
+        role="img"
+        aria-label={`${ecosystem.project}: ${ERA_NAME[ecosystem.era]}, ${lifeSummary(ecosystem)}`}
+      />
+      <div class="eco-info">
+        <h2>
+          {ecosystem.project}
+          <span class="eco-era">
+            {ERA_EMOJI[ecosystem.era]} {ERA_NAME[ecosystem.era]}
+          </span>
+        </h2>
+        <p class="eco-life">{lifeSummary(ecosystem)}</p>
+        {ecosystem.nextEra !== undefined && (
+          <div
+            class="eco-progress"
+            role="progressbar"
+            aria-label={`Progress to ${ERA_NAME[ecosystem.nextEra]}`}
+            aria-valuenow={progress}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
+            <span class="bar-fill" style={{ width: `${progress}%` }} />
+          </div>
+        )}
+        <p class="eco-meta">
+          {plural(ecosystem.tendedDays, 'day', 'days')} · {ecosystem.xp} XP
+          {ecosystem.nextEra !== undefined &&
+          ecosystem.daysToNextEra !== undefined
+            ? ` · ${ecosystem.daysToNextEra} to ${ERA_NAME[ecosystem.nextEra]}`
+            : ' · fully grown'}
+        </p>
+      </div>
+    </article>
+  );
+}
+
+function ForestSceneView({ world }: SceneProps) {
+  const images = useSheets();
+
+  if (world.ecosystems.length === 0) {
+    return (
+      <p class="forest-empty">
+        Your forest is waiting. Work on a project with your coding agent and its
+        first clearing will appear.
+      </p>
+    );
+  }
 
   return (
     <div class="forest">
-      <canvas
-        ref={canvasRef}
-        width={scene.cols * PIXEL}
-        height={scene.rows * PIXEL}
-        role="img"
-        aria-label={describe(grove)}
-      />
-      {grove.isEmpty && (
-        <p class="forest-empty">
-          Your forest is waiting. Work on a project with your coding agent and
-          its first clearing will appear.
-        </p>
-      )}
+      <div class="eco-grid">
+        {world.ecosystems.map((ecosystem) => (
+          <EcosystemCard
+            key={ecosystem.project}
+            ecosystem={ecosystem}
+            images={images}
+          />
+        ))}
+      </div>
       <p class="forest-credit">
-        Pixel art: Tiny Town by <a href="https://kenney.nl">Kenney</a> (CC0)
+        Pixel art: Tiny Town and Tiny Farm by{' '}
+        <a href="https://kenney.nl">Kenney</a> (CC0)
       </p>
     </div>
   );

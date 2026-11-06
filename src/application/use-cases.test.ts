@@ -7,6 +7,7 @@ import {
   type GroveEvent,
   type GroveRules,
   Stage,
+  WorkKind,
 } from '../domain';
 import { checkBedtime } from './check-bedtime';
 import { getGrove } from './get-grove';
@@ -14,6 +15,7 @@ import type {
   Activity,
   Clock,
   CommitLog,
+  CommitRecord,
   Deps,
   EventStore,
   LocalNow,
@@ -27,7 +29,7 @@ interface FakeCommitLog extends CommitLog {
   readonly calls: { projectDir: string; since: string }[];
 }
 
-function createCommitLog(commits: LocalNow[] = []): FakeCommitLog {
+function createCommitLog(commits: CommitRecord[] = []): FakeCommitLog {
   const calls: { projectDir: string; since: string }[] = [];
 
   return {
@@ -80,7 +82,7 @@ function createDeps(
   now: LocalNow,
   initialEvents: GroveEvent[] = [],
   rules: GroveRules = DEFAULT_RULES,
-  commitTimes: LocalNow[] = [],
+  commitTimes: CommitRecord[] = [],
 ): FakeDeps {
   const events = createEventStore(initialEvents);
   const commits = createCommitLog(commitTimes);
@@ -280,7 +282,8 @@ describe('syncCommits', () => {
     instant: string,
     localDate: string,
     localHour: number,
-  ): LocalNow => ({ instant, localDate, localHour });
+    work: WorkKind = WorkKind.Feature,
+  ): CommitRecord => ({ instant, localDate, localHour, work });
 
   test('records nothing and skips git before Bitgrove has seen any session', () => {
     const { deps, events, commits } = createDeps(now, [], DEFAULT_RULES, [
@@ -318,6 +321,7 @@ describe('syncCommits', () => {
         hour: 10,
         project: 'alpha',
         agent: 'claude-code',
+        work: WorkKind.Feature,
       },
       {
         v: EVENT_SCHEMA_VERSION,
@@ -327,6 +331,7 @@ describe('syncCommits', () => {
         hour: 11,
         project: 'alpha',
         agent: 'claude-code',
+        work: WorkKind.Feature,
       },
     ]);
   });
@@ -364,5 +369,19 @@ describe('syncCommits', () => {
 
     const tree = getGrove(deps).trees.find((t) => t.project === 'alpha');
     expect(tree?.tendedDays).toBe(1);
+  });
+
+  test('records the kind of work of each commit', () => {
+    const { deps, events } = createDeps(now, [firstSeen], DEFAULT_RULES, [
+      commitAt('2024-05-09T10:00:00.000Z', '2024-05-09', 10, WorkKind.Fix),
+      commitAt('2024-05-09T11:00:00.000Z', '2024-05-09', 11, WorkKind.Tests),
+    ]);
+
+    syncCommits(deps, activity, '/work/alpha');
+
+    expect(events.events.slice(1).map((event) => event.work)).toEqual([
+      WorkKind.Fix,
+      WorkKind.Tests,
+    ]);
   });
 });

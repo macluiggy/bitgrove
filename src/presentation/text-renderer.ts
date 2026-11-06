@@ -1,5 +1,12 @@
 import type { OvernightReport } from '../application';
-import { type Grove, nextThreshold, Stage } from '../domain';
+import {
+  type Ecosystem,
+  type Grove,
+  nextThreshold,
+  Stage,
+  type World,
+} from '../domain';
+import { ERA_EMOJI, ERA_NAME } from './labels';
 
 const STAGE_EMOJI = {
   [Stage.Seed]: '🌰',
@@ -67,4 +74,50 @@ export function renderOvernight(report: OvernightReport): string {
 
 export function renderBedtime(): string {
   return BEDTIME_MESSAGE;
+}
+
+function count(amount: number, singular: string, plural: string): string {
+  return `${amount} ${amount === 1 ? singular : plural}`;
+}
+
+function ecosystemDetails(ecosystem: Ecosystem): string {
+  const parts: string[] = [ERA_NAME[ecosystem.era]];
+
+  if (ecosystem.trees.length > 0) {
+    parts.push(count(ecosystem.trees.length, 'tree', 'trees'));
+  }
+  if (ecosystem.animals.length > 0) {
+    parts.push(count(ecosystem.animals.length, 'animal', 'animals'));
+  }
+  if (ecosystem.buildings.length > 0) {
+    parts.push(count(ecosystem.buildings.length, 'building', 'buildings'));
+  }
+
+  parts.push(count(ecosystem.tendedDays, 'day', 'days'));
+
+  if (
+    ecosystem.nextEra !== undefined &&
+    ecosystem.daysToNextEra !== undefined
+  ) {
+    parts.push(`${ecosystem.daysToNextEra} to ${ERA_NAME[ecosystem.nextEra]}`);
+  }
+
+  return parts.join(' · ');
+}
+
+export function renderWorld(world: World): string {
+  if (world.ecosystems.length === 0) {
+    return EMPTY_GROVE_MESSAGE;
+  }
+
+  const { level, levelXp, nextLevelXp } = world.level;
+  const header = `Bitgrove · Level ${level} · ${world.totalXp} XP (${levelXp}/${nextLevelXp} to level ${level + 1})`;
+  const width = Math.max(...world.ecosystems.map((e) => e.project.length));
+
+  const lines = world.ecosystems.map(
+    (ecosystem) =>
+      `${ERA_EMOJI[ecosystem.era]} ${ecosystem.project.padEnd(width)}  ${ecosystemDetails(ecosystem)}`,
+  );
+
+  return [header, '', ...lines].join('\n');
 }

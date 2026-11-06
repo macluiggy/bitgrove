@@ -48,9 +48,10 @@ export function syncCommits(
       continue;
     }
 
-    deps.events.append(
-      buildEventAt(deps, activity, EventType.CommitMade, commit),
-    );
+    deps.events.append({
+      ...buildEventAt(deps, activity, EventType.CommitMade, commit),
+      work: commit.work,
+    });
     recorded.add(commit.instant);
     added += 1;
   }

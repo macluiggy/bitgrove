@@ -133,14 +133,89 @@ body {
   color: #8fa684;
 }
 
-/* Forest theme */
-.forest canvas {
+/* Level and XP */
+.level {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: center;
+  color: var(--ink-soft);
+}
+
+.level strong {
+  color: var(--ink);
+}
+
+.level-bar,
+.eco-progress {
+  width: 140px;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(127, 127, 127, 0.25);
+}
+
+.bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f6c453, #e88a2e);
+  transition: width 300ms ease;
+}
+
+/* Forest theme: one card per ecosystem */
+.eco-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.eco-card {
+  overflow: hidden;
+  border-radius: 14px;
+  background: #2a2f22;
+  color: #f1ead6;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+
+.eco-card canvas {
   display: block;
   width: 100%;
   height: auto;
-  border-radius: 12px;
   image-rendering: pixelated;
   background: #6fbf5b;
+}
+
+.eco-info {
+  padding: 10px 14px 14px;
+}
+
+.eco-info h2 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+}
+
+.eco-era {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #f6c453;
+}
+
+.eco-life,
+.eco-meta {
+  margin: 4px 0;
+  font-size: 0.85rem;
+  color: #c9c1aa;
+}
+
+.eco-progress {
+  width: 100%;
+  margin: 8px 0 4px;
 }
 
 .forest-empty {
@@ -150,7 +225,7 @@ body {
 }
 
 .forest-credit {
-  margin: 8px 0 0;
+  margin: 12px 0 0;
   font-size: 0.75rem;
   color: var(--ink-soft);
   text-align: right;

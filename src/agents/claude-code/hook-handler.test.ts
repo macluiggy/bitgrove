@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import type {
   Clock,
   CommitLog,
+  CommitRecord,
   Deps,
   EventStore,
   LocalNow,
@@ -14,6 +15,7 @@ import {
   type EventType as EventTypeValue,
   type GroveEvent,
   type GroveRules,
+  WorkKind,
 } from '../../domain';
 import { handleClaudeHook } from './hook-handler';
 
@@ -53,14 +55,14 @@ interface FakeDeps {
   events: FakeEventStore;
 }
 
-function createCommitLog(commits: LocalNow[] = []): CommitLog {
+function createCommitLog(commits: CommitRecord[] = []): CommitLog {
   return { ownCommitsSince: () => commits };
 }
 
 function createDeps(
   now: LocalNow,
   initialEvents: GroveEvent[] = [],
-  commits: LocalNow[] = [],
+  commits: CommitRecord[] = [],
 ): FakeDeps {
   const events = createEventStore(initialEvents);
 
@@ -139,6 +141,7 @@ describe('handleClaudeHook', () => {
           instant: '2024-05-10T11:00:00.000Z',
           localDate: '2024-05-10',
           localHour: 11,
+          work: WorkKind.Feature,
         },
       ],
     );
@@ -166,6 +169,7 @@ describe('handleClaudeHook', () => {
           instant: '2024-05-09T15:00:00.000Z',
           localDate: '2024-05-09',
           localHour: 15,
+          work: WorkKind.Feature,
         },
       ],
     );

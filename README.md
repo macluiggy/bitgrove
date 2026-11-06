@@ -114,6 +114,7 @@ Why it works this way: [docs/design.md](docs/design.md).
 
 ### Credits
 
-The Forest theme uses [Tiny Town](https://kenney.nl/assets/tiny-town) by
-[Kenney](https://kenney.nl), released under CC0
-([license](web/src/themes/forest/assets/kenney-tiny-town/License.txt)).
+The Forest theme uses [Tiny Town](https://kenney.nl/assets/tiny-town) and
+[Tiny Farm](https://kenney.nl/assets/tiny-farm) by [Kenney](https://kenney.nl),
+released under CC0 ([Tiny Town license](web/src/themes/forest/assets/kenney-tiny-town/License.txt),
+[Tiny Farm license](web/src/themes/forest/assets/kenney-tiny-farm/License.txt)).

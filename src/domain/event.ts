@@ -1,3 +1,5 @@
+import type { WorkKind } from './work';
+
 export const EventType = {
   SessionStarted: 'session.started',
   TestsPassed: 'tests.passed',
@@ -23,6 +25,11 @@ export interface GroveEvent {
   hour: number;
   project: string;
   agent: string;
+  /**
+   * Kind of work of a commit (from its conventional commit type). Optional and
+   * additive: events written before it existed stay valid under v1.
+   */
+  work?: WorkKind;
 }
 
 export function isAccomplishment(event: GroveEvent): boolean {

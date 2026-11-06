@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { WorkKind } from '../domain';
 import { GitCommitLog } from './git-commit-log';
 
 const ME = 'me@example.com';
@@ -17,9 +18,9 @@ function git(args: readonly string[], env: Record<string, string> = {}): void {
   });
 }
 
-function commitAs(email: string, isoDate: string): void {
+function commitAs(email: string, isoDate: string, subject = 'x'): void {
   const date = `${isoDate} +0000`;
-  git(['commit', '--allow-empty', '-q', '-m', 'x'], {
+  git(['commit', '--allow-empty', '-q', '-m', subject], {
     GIT_AUTHOR_NAME: 'Someone',
     GIT_AUTHOR_EMAIL: email,
     GIT_AUTHOR_DATE: date,
@@ -89,5 +90,21 @@ describe('GitCommitLog', () => {
     expect(
       new GitCommitLog().ownCommitsSince(repo, '2024-05-01T00:00:00.000Z'),
     ).toEqual([]);
+  });
+
+  test('reads the kind of work from the conventional commit type, and keeps nothing else', () => {
+    commitAs(ME, '2024-05-09T10:00:00', 'fix(api): secret customer detail');
+    commitAs(ME, '2024-05-09T11:00:00', 'test: cover the forest');
+
+    const commits = new GitCommitLog().ownCommitsSince(
+      repo,
+      '2024-05-01T00:00:00.000Z',
+    );
+
+    expect(commits.map((commit) => commit.work)).toEqual([
+      WorkKind.Fix,
+      WorkKind.Tests,
+    ]);
+    expect(JSON.stringify(commits)).not.toContain('secret');
   });
 });

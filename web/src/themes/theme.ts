@@ -1,4 +1,5 @@
 import type { FunctionComponent } from 'preact';
+import type { World } from '../../../src/domain';
 import type { GroveView } from '../view-model/grove-view';
 
 export const ThemeId = {
@@ -11,6 +12,8 @@ export type ThemeId = (typeof ThemeId)[keyof typeof ThemeId];
 
 export interface SceneProps {
   grove: GroveView;
+  /** Every project's living ecosystem, plus XP and level. */
+  world: World;
 }
 
 /**

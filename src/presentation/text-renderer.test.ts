@@ -1,7 +1,91 @@
 import { describe, expect, test } from 'bun:test';
 import type { OvernightReport } from '../application';
-import { type Grove, Stage } from '../domain';
-import { renderBedtime, renderGrove, renderOvernight } from './text-renderer';
+import {
+  BuildingKind,
+  type Ecosystem,
+  Era,
+  type Grove,
+  Stage,
+  TreeSpecies,
+  type World,
+} from '../domain';
+import {
+  renderBedtime,
+  renderGrove,
+  renderOvernight,
+  renderWorld,
+} from './text-renderer';
+
+function ecosystem(overrides: Partial<Ecosystem>): Ecosystem {
+  return {
+    project: 'api',
+    tendedDays: 0,
+    era: Era.Clearing,
+    nextEra: Era.Grove,
+    daysToNextEra: 3,
+    trees: [],
+    animals: [],
+    flowers: 0,
+    bushes: 0,
+    paths: 0,
+    buildings: [],
+    xp: 0,
+    ...overrides,
+  };
+}
+
+const tree = { id: 0, species: TreeSpecies.Oak, age: 1, stage: Stage.Sprout };
+
+describe('renderWorld', () => {
+  test('an empty world keeps the empty message', () => {
+    expect(
+      renderWorld({
+        ecosystems: [],
+        totalXp: 0,
+        level: { level: 1, levelXp: 0, nextLevelXp: 100 },
+      }),
+    ).toBe(
+      'Your grove is empty. Work on a project with your coding agent and your first seed will be planted.',
+    );
+  });
+
+  test('shows the level and every ecosystem with its era and life', () => {
+    const world: World = {
+      totalXp: 140,
+      level: { level: 2, levelXp: 40, nextLevelXp: 200 },
+      ecosystems: [
+        ecosystem({
+          project: 'api',
+          tendedDays: 46,
+          era: Era.Hamlet,
+          nextEra: Era.Village,
+          daysToNextEra: 34,
+          trees: [tree, { ...tree, id: 1 }],
+          animals: [{ id: 0, species: 'sheep' }],
+          buildings: [
+            { id: 0, kind: BuildingKind.Cabin },
+            { id: 1, kind: BuildingKind.Well },
+          ],
+        }),
+        ecosystem({
+          project: 'scratch',
+          tendedDays: 1,
+          daysToNextEra: 2,
+          trees: [tree],
+        }),
+      ],
+    };
+
+    expect(renderWorld(world)).toBe(
+      [
+        'Bitgrove · Level 2 · 140 XP (40/200 to level 3)',
+        '',
+        '🏡 api      Hamlet · 2 trees · 1 animal · 2 buildings · 46 days · 34 to Village',
+        '🌱 scratch  Clearing · 1 tree · 1 day · 2 to Grove',
+      ].join('\n'),
+    );
+  });
+});
 
 describe('renderGrove', () => {
   test('renders the empty grove message', () => {

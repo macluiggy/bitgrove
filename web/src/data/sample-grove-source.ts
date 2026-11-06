@@ -4,6 +4,7 @@ import {
   EventType,
   type EventType as EventTypeValue,
   type GroveEvent,
+  WorkKind,
 } from '../../../src/domain';
 import type { GroveData, GroveSource } from './grove-source';
 
@@ -18,14 +19,27 @@ interface SampleProject {
 }
 
 // Projects that start at different times and grow at different speeds, so
-// the time-travel bar shows clearings appearing and filling up.
+// the time-travel bar shows clearings appearing, filling up and, for the
+// oldest, turning into a hamlet and a village.
 const SAMPLE_PROJECTS: readonly SampleProject[] = [
-  { name: 'ancient-api', firstDay: 0, tendedDays: 31, every: 1 },
-  { name: 'billing', firstDay: 4, tendedDays: 16, every: 2 },
-  { name: 'web', firstDay: 10, tendedDays: 8, every: 3 },
-  { name: 'mobile', firstDay: 20, tendedDays: 4, every: 4 },
-  { name: 'docs', firstDay: 30, tendedDays: 1, every: 1 },
-  { name: 'scratch', firstDay: 36, tendedDays: 0, every: 1 },
+  { name: 'ancient-api', firstDay: 0, tendedDays: 95, every: 1 },
+  { name: 'billing', firstDay: 6, tendedDays: 50, every: 1 },
+  { name: 'web', firstDay: 15, tendedDays: 26, every: 2 },
+  { name: 'mobile', firstDay: 40, tendedDays: 11, every: 3 },
+  { name: 'docs', firstDay: 70, tendedDays: 4, every: 4 },
+  { name: 'scratch', firstDay: 90, tendedDays: 0, every: 1 },
+];
+
+// A realistic mix of work, cycled through each project's days.
+const WORK_CYCLE: readonly WorkKind[] = [
+  WorkKind.Feature,
+  WorkKind.Tests,
+  WorkKind.Fix,
+  WorkKind.Feature,
+  WorkKind.Refactor,
+  WorkKind.Tests,
+  WorkKind.Docs,
+  WorkKind.Chore,
 ];
 
 const SAMPLE_START_DAY_UTC = Date.UTC(2024, 0, 1);
@@ -41,6 +55,7 @@ function sampleEvent(
   type: EventTypeValue,
   offset: number,
   project: string,
+  work?: WorkKind,
 ): GroveEvent {
   const day = dayAt(offset);
 
@@ -52,7 +67,12 @@ function sampleEvent(
     hour: 12,
     project,
     agent: 'claude-code',
+    ...(work === undefined ? {} : { work }),
   };
+}
+
+function workOnDay(index: number): WorkKind {
+  return WORK_CYCLE[index % WORK_CYCLE.length] ?? WorkKind.Feature;
 }
 
 function sampleEvents(): GroveEvent[] {
@@ -60,9 +80,10 @@ function sampleEvents(): GroveEvent[] {
     sampleEvent(EventType.SessionStarted, project.firstDay, project.name),
     ...Array.from({ length: project.tendedDays }, (_, index) =>
       sampleEvent(
-        EventType.TestsPassed,
+        EventType.CommitMade,
         project.firstDay + index * project.every,
         project.name,
+        workOnDay(index),
       ),
     ),
   ]);

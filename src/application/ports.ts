@@ -1,4 +1,4 @@
-import type { GroveEvent, GroveRules } from '../domain';
+import type { GroveEvent, GroveRules, WorkKind } from '../domain';
 
 export interface EventStore {
   readAll(): GroveEvent[];
@@ -20,13 +20,18 @@ export interface Clock {
   now(): LocalNow;
 }
 
+/** One of your commits: when it landed and what kind of work it was. */
+export interface CommitRecord extends LocalNow {
+  work: WorkKind;
+}
+
 export interface CommitLog {
   /**
    * Your own commits (matching the repo's git user.email) in `projectDir`
    * with a commit time at or after `since` (an ISO instant), oldest first.
    * Returns an empty list when the folder is not a git repo or git fails.
    */
-  ownCommitsSince(projectDir: string, since: string): LocalNow[];
+  ownCommitsSince(projectDir: string, since: string): CommitRecord[];
 }
 
 export interface Activity {

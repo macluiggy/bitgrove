@@ -1,7 +1,12 @@
 import { appendFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { EventStore } from '../application';
-import { EVENT_SCHEMA_VERSION, EventType, type GroveEvent } from '../domain';
+import {
+  EVENT_SCHEMA_VERSION,
+  EventType,
+  type GroveEvent,
+  isWorkKind,
+} from '../domain';
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const KNOWN_EVENT_TYPES: ReadonlySet<string> = new Set(
@@ -60,6 +65,7 @@ function toEvent(value: unknown): GroveEvent | undefined {
     hour: value.hour,
     project: value.project,
     agent: value.agent,
+    ...(isWorkKind(value.work) ? { work: value.work } : {}),
   };
 }
 

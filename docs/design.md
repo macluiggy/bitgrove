@@ -94,67 +94,65 @@ filtered by your git email.
 Never code, prompts, file paths, diffs or command output. Nothing leaves your
 machine.
 
-## Next: living ecosystems (vision, not built yet)
+## Living ecosystems
 
-The goal of this stage: watching your work grow should be **deeply satisfying
-and make you happy**, not just informative.
+Watching your work grow should be **deeply satisfying and make you happy**, not
+just informative. Rules live in `src/domain/ecosystem.ts` and
+`src/domain/xp.ts` (pure, deterministic, replayed from your events); the art
+lives in the Forest theme. The numbers below are the current tuning.
 
 ### One ecosystem per project
 
-Today a project is one tree. Next, every project is its **own independent
-ecosystem** that grows organically as you work on it:
+Every project is its **own independent ecosystem** that grows organically as
+you work on it:
 
 ```
-a clearing with a sprout → a small wood → a forest with animals
-→ a clearing with a cabin → a village
+clearing (0 tended days) → grove (3) → wood (10) → forest (25)
+→ hamlet (45: a cabin and a well) → village (80: houses, one more every 15 days)
 ```
 
-- Trees multiply: as a project grows, new trees take root next to the old
-  ones, instead of one tree getting bigger.
-- Life arrives: animals (rabbits, birds, deer…) appear as the ecosystem
-  matures.
-- People arrive: in long-lived projects the forest opens into a cabin, then a
-  village.
+- Trees multiply: new trees take root next to the old ones, and each tree
+  grows from seedling to ancient as the project is tended.
+- Life arrives: chickens, sheep and cows.
+- People arrive: long-lived projects open into a hamlet, then a village.
 - It evolves on its own: you never place anything. Nothing ever wilts or
-  shrinks while you are away (P3).
+  shrinks while you are away (P3). Everything is bounded, so a plot stays
+  drawable however long the history.
 
-### The agent decides what your work plants
+### Your work decides what grows
 
-When a task is finished, the coding agent classifies it, and the ecosystem
-reacts to what kind of work it was, so each day leaves a different, meaningful
-mark (P6: surprise lives in content):
+The kind of work comes from the conventional commit type the agent (or you)
+writes: `feat`, `fix`, `refactor`/`perf`, `test`, `docs`, `chore`/`ci`/`build`.
+A commit without a type counts as a feature; a passing test run counts as
+tests. Each day leaves a different, meaningful mark (P6: surprise lives in
+content):
 
-| You finished…          | Your ecosystem…                                   |
-| ---------------------- | ------------------------------------------------- |
-| a new feature          | plants a new tree                                 |
-| a refactor             | an existing tree grows, or the forest gets tidier |
-| a bug fix              | small life appears: flowers, mushrooms            |
-| tests                  | animals arrive                                    |
-| sustained, larger work | something is built: a bridge, a cabin, a well     |
+| You finished… | Your ecosystem…                                    |
+| ------------- | -------------------------------------------------- |
+| a feature     | plants a new tree                                  |
+| a refactor    | the youngest growing tree catches up               |
+| a bug fix     | flowers bloom                                      |
+| tests         | an animal arrives (once it is a grove)             |
+| docs          | a stone path grows                                 |
+| a chore       | a bush grows                                       |
+| many days     | the era advances: cabin, well, then village houses |
 
-Privacy (P8): the agent stores only the **category** (`feature`, `fix`,
-`refactor`, `tests`…), never the text of the request, code or diffs.
+Privacy (P8): from git, Bitgrove keeps only the commit type, never the message,
+code or diffs.
 
-### Experience points, designed carefully
+### Experience points: per task, with a daily cap
 
-XP for finishing tasks makes progress tangible, but XP per task invites
-splitting work into tiny tasks to farm points: exactly the slot-machine loop
-Bitgrove exists to avoid (P1, P5). Open design question before building it:
+Each finished task earns XP by its kind (feature 30, refactor 20, fix 15, tests
+10, docs 10, chore 5), but a day never earns more than 100 XP across all
+projects, so many tiny tasks never beat one good day (P1, P5). Re-running the
+tests the same day earns nothing more; work after hours earns nothing (P4).
+Going from level n to n + 1 takes n × 100 XP. XP never decays and never appears
+in a leaderboard (P2, P3).
 
-- XP per **tended day** (with the day's best accomplishment), or
-- XP per task with a **daily cap**, or
-- XP that only unlocks content (new species, buildings), never a score to
-  compare.
+### Feeling, not just data (next)
 
-Whatever is chosen, XP never decays and never appears in a leaderboard (P2,
-P3).
-
-### Feeling, not just data
-
-The point is the moment of opening the view and smiling: small animations
-(wind in the trees, an animal crossing), a short "while you were coding…"
-summary of what arrived today, and a world that is visibly richer than last
-week.
+Still to come: small animations (wind in the trees, an animal crossing) and a
+"while you were coding…" summary of what arrived, in the overnight message.
 
 ## Roadmap (after the MVP)
 

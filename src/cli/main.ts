@@ -12,9 +12,9 @@ import { join } from 'node:path';
 import webPageBundle from '../../dist/web/index.html' with { type: 'text' };
 import packageJson from '../../package.json' with { type: 'json' };
 import { AGENTS, getAgent } from '../agents';
-import { getGrove } from '../application';
+import { getWorld } from '../application';
 import { DEFAULT_RULES } from '../domain';
-import { renderGrove } from '../presentation';
+import { renderWorld } from '../presentation';
 import {
   installCommandShim,
   PATH_HINT,
@@ -169,7 +169,7 @@ function viewCommand(args: readonly string[], env: Env): number {
 function statusCommand(env: Env): number {
   try {
     const { deps } = composeDeps(env);
-    process.stdout.write(`${renderGrove(getGrove(deps))}\n`);
+    process.stdout.write(`${renderWorld(getWorld(deps))}\n`);
     return 0;
   } catch (error) {
     process.stderr.write(`${errorMessage(error)}\n`);
