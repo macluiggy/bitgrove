@@ -132,3 +132,30 @@ body {
 .terminal-tree span:last-child {
   color: #8fa684;
 }
+
+/* Forest theme */
+.forest canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  image-rendering: pixelated;
+  background: #6fbf5b;
+}
+
+.forest-empty {
+  margin: 12px 0 0;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.forest-credit {
+  margin: 8px 0 0;
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  text-align: right;
+}
+
+.forest-credit a {
+  color: inherit;
+}

@@ -2,6 +2,7 @@ import type { FunctionComponent } from 'preact';
 import type { GroveView } from '../view-model/grove-view';
 
 export const ThemeId = {
+  Forest: 'forest',
   Meadow: 'meadow',
   Terminal: 'terminal',
 } as const;

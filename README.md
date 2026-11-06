@@ -111,3 +111,9 @@ Why it works this way: [docs/design.md](docs/design.md).
 ## License
 
 [MIT](LICENSE)
+
+### Credits
+
+The Forest theme uses [Tiny Town](https://kenney.nl/assets/tiny-town) by
+[Kenney](https://kenney.nl), released under CC0
+([license](web/src/themes/forest/assets/kenney-tiny-town/License.txt)).
