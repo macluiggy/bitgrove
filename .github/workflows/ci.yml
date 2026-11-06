@@ -1,0 +1,24 @@
+name: CI
+
+# Checks every push and pull request. Never publishes: only a `v*` tag does
+# (see release.yml).
+on:
+  push:
+    branches:
+      - main
+      - development
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      - run: bun run check
