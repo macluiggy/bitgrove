@@ -6,6 +6,7 @@ This file is the **compass**: a short map of what already exists and the mandato
 
 ## Mandatory rules
 
+- ⚠️ **Before starting a task, check the [skills](#skills) below** and read the full `SKILL.md` of every one that applies to what you will touch.
 - ⚠️ [Every mechanic passes the principles P1–P8](docs/design.md#principles-non-negotiable) — reward accomplishment, never volume (tokens, tool calls, lines, hours); compare only with your past self (no leaderboards); absence never hurts (no streaks, decay or wilting); nothing grows after hours; daily caps; surprise lives in content, not payouts; silent while working; local and private. A feature that breaks one of them is rejected, however fun it looks.
 - ⚠️ [Hexagonal layers without jumps](docs/design.md#architecture) — `domain/` imports nothing outside `domain/`; `application/` imports only `domain/` and its own ports. Enforced by `test/architecture/layer-boundary.test.ts`.
 - ⚠️ **No ambient time or I/O in `domain/`/`application/`** — no `new Date`, `Date.now`, `console.` or `process.`: the clock, stores and output are ports (`src/application/ports.ts`). Enforced by `layer-boundary.test.ts`.
@@ -41,11 +42,24 @@ This file is the **compass**: a short map of what already exists and the mandato
 
 If you add, rename or remove one of these, update its row in the same commit.
 
+## Skills
+
+Project skills live in [`.agents/skills/`](.agents/skills/). Each `SKILL.md` is short; its `references/details.md` holds the long examples, so open it only when the summary is not enough.
+
+| Skill                                                                            | Use it when you touch…                                                              |
+| -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| [`bun`](.agents/skills/bun/SKILL.md)                                             | `package.json` scripts, `bun test`, `bun build` (the bundle in `dist/`), `bun.lock` |
+| [`typescript-advanced-types`](.agents/skills/typescript-advanced-types/SKILL.md) | domain types, `as const` objects and their derived types, ports and generics        |
+| [`bash-defensive-patterns`](.agents/skills/bash-defensive-patterns/SKILL.md)     | `install.sh`, the launcher and command shim scripts, CI workflow `run:` steps       |
+
+If you add or remove a skill, update this table in the same commit.
+
 ## Documentation map
 
 - Game design, principles, growth rules, roadmap → [`docs/design.md`](docs/design.md)
 - Install, use, release → [`README.md`](README.md)
 - Feature logbooks (specs, tasks, decisions) → [`odd/tasks/`](odd/tasks/)
+- Project skills → [`.agents/skills/`](.agents/skills/) (see [Skills](#skills))
 
 ## Frequent commands
 
@@ -58,7 +72,7 @@ bun run build        # bundle to dist/bitgrove.mjs
 node dist/bitgrove.mjs init   # install from source into your real Claude Code
 ```
 
-Try changes without touching your real setup: `HOME=$(mktemp -d) node dist/bitgrove.mjs init`.
+Try changes without touching your real setup: `HOME=$(mktemp -d) node dist/bitgrove.mjs init`. To test commit sync, keep your real `HOME` (git needs your `user.email` from `~/.gitconfig`) and point only the save elsewhere: `BITGROVE_HOME=$(mktemp -d) …`.
 
 Release: `npm version patch` (or `minor`), then `git push --follow-tags`. Pushing to `main` never publishes; only a `v*` tag does.
 

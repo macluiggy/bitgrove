@@ -1,7 +1,8 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.6.6/schema.json",
   "files": {
-    "includes": ["**", "!dist"]
+    // .agents/skills are vendored from upstream: keep them byte-identical.
+    "includes": ["**", "!dist", "!.agents"]
   },
   "formatter": {
     "enabled": true,
