@@ -94,6 +94,68 @@ filtered by your git email.
 Never code, prompts, file paths, diffs or command output. Nothing leaves your
 machine.
 
+## Next: living ecosystems (vision, not built yet)
+
+The goal of this stage: watching your work grow should be **deeply satisfying
+and make you happy**, not just informative.
+
+### One ecosystem per project
+
+Today a project is one tree. Next, every project is its **own independent
+ecosystem** that grows organically as you work on it:
+
+```
+a clearing with a sprout → a small wood → a forest with animals
+→ a clearing with a cabin → a village
+```
+
+- Trees multiply: as a project grows, new trees take root next to the old
+  ones, instead of one tree getting bigger.
+- Life arrives: animals (rabbits, birds, deer…) appear as the ecosystem
+  matures.
+- People arrive: in long-lived projects the forest opens into a cabin, then a
+  village.
+- It evolves on its own: you never place anything. Nothing ever wilts or
+  shrinks while you are away (P3).
+
+### The agent decides what your work plants
+
+When a task is finished, the coding agent classifies it, and the ecosystem
+reacts to what kind of work it was, so each day leaves a different, meaningful
+mark (P6: surprise lives in content):
+
+| You finished…          | Your ecosystem…                                   |
+| ---------------------- | ------------------------------------------------- |
+| a new feature          | plants a new tree                                 |
+| a refactor             | an existing tree grows, or the forest gets tidier |
+| a bug fix              | small life appears: flowers, mushrooms            |
+| tests                  | animals arrive                                    |
+| sustained, larger work | something is built: a bridge, a cabin, a well     |
+
+Privacy (P8): the agent stores only the **category** (`feature`, `fix`,
+`refactor`, `tests`…), never the text of the request, code or diffs.
+
+### Experience points, designed carefully
+
+XP for finishing tasks makes progress tangible, but XP per task invites
+splitting work into tiny tasks to farm points: exactly the slot-machine loop
+Bitgrove exists to avoid (P1, P5). Open design question before building it:
+
+- XP per **tended day** (with the day's best accomplishment), or
+- XP per task with a **daily cap**, or
+- XP that only unlocks content (new species, buildings), never a score to
+  compare.
+
+Whatever is chosen, XP never decays and never appears in a leaderboard (P2,
+P3).
+
+### Feeling, not just data
+
+The point is the moment of opening the view and smiling: small animations
+(wind in the trees, an animal crossing), a short "while you were coding…"
+summary of what arrived today, and a world that is visibly richer than last
+week.
+
 ## Roadmap (after the MVP)
 
 1. Skills that grow with demonstrated mastery (testing, debugging, architecture).
