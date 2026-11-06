@@ -1,8 +1,14 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import type { GroveData, GroveSource } from './data/grove-source';
+import { eventDays, eventsUntil } from './dev/time-travel';
+import { TimeTravelBar } from './dev/time-travel-bar';
 import { loadThemeId, saveThemeId } from './preferences';
 import { getTheme, THEMES } from './themes';
 import { toGroveView } from './view-model/grove-view';
+
+// Vite replaces MODE at build time, so the time-travel bar is removed from the
+// page that `bitgrove view` ships.
+const TIME_TRAVEL = import.meta.env.MODE === 'development';
 
 type LoadState =
   | { status: 'loading' }
@@ -13,6 +19,7 @@ export function App({ source }: { source: GroveSource }) {
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const [themeId, setThemeId] = useState(loadThemeId);
   const theme = getTheme(themeId);
+  const [dayIndex, setDayIndex] = useState<number | undefined>(undefined);
 
   useEffect(() => {
     source
@@ -27,13 +34,22 @@ export function App({ source }: { source: GroveSource }) {
       .catch(() => setState({ status: 'missing' }));
   }, [source]);
 
-  const grove = useMemo(
-    () =>
-      state.status === 'ready'
-        ? toGroveView(state.data.events, state.data.rules)
-        : undefined,
+  const days = useMemo(
+    () => (state.status === 'ready' ? eventDays(state.data.events) : []),
     [state],
   );
+  const shownDayIndex = dayIndex ?? days.length - 1;
+
+  const grove = useMemo(() => {
+    if (state.status !== 'ready') {
+      return undefined;
+    }
+
+    const events = TIME_TRAVEL
+      ? eventsUntil(state.data.events, days[shownDayIndex])
+      : state.data.events;
+    return toGroveView(events, state.data.rules);
+  }, [state, days, shownDayIndex]);
 
   function chooseTheme(id: string) {
     setThemeId(id);
@@ -75,6 +91,13 @@ export function App({ source }: { source: GroveSource }) {
         <p class="app-note">
           No grove data here. Open this page with <code>bitgrove view</code>.
         </p>
+      )}
+      {TIME_TRAVEL && grove !== undefined && (
+        <TimeTravelBar
+          days={days}
+          index={shownDayIndex}
+          onChange={setDayIndex}
+        />
       )}
       {grove !== undefined && <theme.Scene grove={grove} />}
     </main>

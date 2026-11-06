@@ -41,6 +41,7 @@ This file is the **compass**: a short map of what already exists and the mandato
 | Agent registry                                             | `AGENTS`, `getAgent`                                                                                               | `src/agents/index.ts`                                                |
 | CLI commands and composition root                          | `run` (`init`, `status`, `uninstall`, `hook`, `help`), `composeDeps`                                               | `src/cli/main.ts`, `src/cli/compose.ts`                              |
 | Launcher and `bitgrove` command on PATH                    | `LAUNCHER_SCRIPT`, `hookCommand`, `installCommandShim`/`removeCommandShim`                                         | `src/cli/launcher.ts`, `src/cli/command-shim.ts`                     |
+| Dev-only time travel (scrub/play through days)             | `eventDays`, `eventsUntil`, `TimeTravelBar`, `TIME_TRAVEL` flag (removed from builds)                              | `web/src/dev/`, `web/src/app.tsx`                                    |
 | Forest theme (pixel-art forest, one clearing per project)  | `layoutForest` (pure, seeded by project name), `ForestTile` (Kenney Tiny Town indexes), canvas painter             | `web/src/themes/forest/`                                             |
 | Web page: view-model, data sources, themes                 | `toGroveView`, `GroveSource`/`EmbeddedGroveSource`/`SampleGroveSource`, `Theme`, `Grove2dKit`, `THEMES`/`getTheme` | `web/src/`                                                           |
 | `bitgrove view` (writes and opens the page)                | `renderViewPage`, `DATA_PLACEHOLDER`                                                                               | `src/cli/view-page.ts`, `src/cli/main.ts`                            |
@@ -76,7 +77,7 @@ bun run check        # lint + typecheck + build + all tests (what CI runs)
 bun test             # tests only (e2e needs `bun run build` first)
 bun run format       # Biome: fix formatting
 bun run build        # web page (dist/web) + CLI bundle (dist/bitgrove.mjs)
-bun run dev:web      # design the web page with demo data (Vite dev server)
+bun run dev:web      # design the web page with demo data + a time-travel bar (dev only)
 node dist/bitgrove.mjs init   # install from source into your real Claude Code
 ```
 

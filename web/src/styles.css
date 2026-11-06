@@ -159,3 +159,20 @@ body {
 .forest-credit a {
   color: inherit;
 }
+
+/* Development-only time-travel bar */
+.time-travel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border: 2px dashed #c98a2b;
+  border-radius: 10px;
+  color: var(--ink);
+}
+
+.time-travel input[type="range"] {
+  flex: 1 1 200px;
+}

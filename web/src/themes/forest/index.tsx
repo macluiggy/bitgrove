@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useRef } from 'preact/hooks';
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'preact/hooks';
 import type { GroveView } from '../../view-model/grove-view';
 import { type SceneProps, type Theme, ThemeId } from '../theme';
 import tilesheetUrl from './assets/kenney-tiny-town/tilemap_packed.png';
@@ -99,29 +105,49 @@ function describe(grove: GroveView): string {
   return `A forest with one clearing per project. ${clearings}.`;
 }
 
-function ForestSceneView({ grove }: SceneProps) {
-  const scene = useMemo(() => layoutForest(grove), [grove]);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+// The tilesheet loads once per page, then every repaint is synchronous.
+let tilesheet: Promise<HTMLImageElement> | undefined;
+
+function loadTilesheet(): Promise<HTMLImageElement> {
+  tilesheet ??= new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = tilesheetUrl;
+  });
+  return tilesheet;
+}
+
+function useTilesheet(): HTMLImageElement | undefined {
+  const [sheet, setSheet] = useState<HTMLImageElement>();
 
   useEffect(() => {
-    const ctx = canvasRef.current?.getContext('2d');
-    if (ctx === null || ctx === undefined) {
-      return;
-    }
-
-    let cancelled = false;
-    const sheet = new Image();
-    sheet.onload = () => {
-      if (!cancelled) {
-        paint(ctx, scene, sheet);
-      }
-    };
-    sheet.src = tilesheetUrl;
-
+    let active = true;
+    loadTilesheet().then(
+      (image) => active && setSheet(image),
+      () => {},
+    );
     return () => {
-      cancelled = true;
+      active = false;
     };
-  }, [scene]);
+  }, []);
+
+  return sheet;
+}
+
+function ForestSceneView({ grove }: SceneProps) {
+  const scene = useMemo(() => layoutForest(grove), [grove]);
+  const sheet = useTilesheet();
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Layout effect: repaint before the browser shows the resized (and so
+  // cleared) canvas, so scrubbing through days never flashes empty.
+  useLayoutEffect(() => {
+    const ctx = canvasRef.current?.getContext('2d');
+    if (ctx !== null && ctx !== undefined && sheet !== undefined) {
+      paint(ctx, scene, sheet);
+    }
+  }, [scene, sheet]);
 
   return (
     <div class="forest">
